@@ -21,33 +21,24 @@ func (h *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	}
 
 	fmt.Fprint(h.Log, "Wasm", extension, event, "...", filePath)
-
-	var inputFilePath, outputFilePath string
-	// Check if the file is an independent wasm module
-	if fileName != h.mainInputFile {
-
-		moduleName, err := GetModuleName(filePath)
-		if err != nil {
-			return err
-		}
-		fmt.Fprint(h.Log, "Module Name: "+moduleName)
-
-		// Create main module wasm path eg: modules/users/wasm/users.wasm.go
-		inputFilePath = path.Join(h.ModulesFolder, moduleName, "wasm", moduleName+".wasm.go")
-		outputFilePath = path.Join(h.wasmFilesOutputDirectory(), moduleName+".wasm")
-
-	} else {
-		// The file is the main wasm file main.wasm.go
-		inputFilePath = path.Join(h.wasmFilesOutputDirectory(), h.mainInputFile)
-		outputFilePath = h.OutputPathMainFileWasm()
-	}
-	// Check if the ...wasm/moduleName.wasm.go file exists
-	if _, err := os.Stat(inputFilePath); err != nil {
-		// WebAssembly file not found
+	// Check if this file should trigger WASM compilation
+	if !h.ShouldCompileToWasm(fileName, filePath) {
+		// File should be ignored (backend file or unknown type)
+		return nil
 	}
 
 	if event != "write" {
 		return nil
+	}
+	// Single WASM output: always compile main.wasm.go to main.wasm
+	rootFolder, _ := h.WebFilesFolder()
+	inputFilePath := path.Join(rootFolder, h.mainInputFile)
+	outputFilePath := h.OutputPathMainFileWasm()
+
+	// Check if the main.wasm.go file exists
+	if _, err := os.Stat(inputFilePath); err != nil {
+		// Main WASM file not found
+		return errors.New("main WASM file not found: " + inputFilePath)
 	}
 
 	var cmd *exec.Cmd
@@ -79,16 +70,16 @@ func (w *TinyWasm) OutputPathMainFileWasm() string {
 	return path.Join(w.wasmFilesOutputDirectory(), w.mainOutputFile)
 }
 
-// wasmFilesOutputDirectory returns the directory where WASM files are output e.g: web/public/wasm
+// wasmFilesOutputDirectory returns the directory where WASM files are output e.g: web/public
 func (w *TinyWasm) wasmFilesOutputDirectory() string {
 	rootFolder, subfolder := w.WebFilesFolder()
-	return path.Join(rootFolder, subfolder, "wasm")
+	return path.Join(rootFolder, subfolder)
 }
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
 	return []string{
-		w.mainOutputFile,
-		// add wasm name modules here
+		w.mainOutputFile, // main.wasm - generated file, should not be watched
+		// main.wasm.go should be watched as developers can modify it
 	}
 }
