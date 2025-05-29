@@ -1,18 +1,24 @@
 package tinywasm
 
 import (
+	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-// TinyWasm provides WebAssembly compilation capabilities using TinyGo
+// TinyWasm provides WebAssembly compilation capabilities with dynamic compiler selection
 type TinyWasm struct {
 	*WasmConfig
 	ModulesFolder  string // default "modules". for test change eg: "test/modules"
 	mainInputFile  string // eg: main.wasm.go
 	mainOutputFile string // eg: main.wasm
+
+	// Dynamic compiler selection fields
+	tinyGoCompiler  bool // Use TinyGo compiler when true, Go standard when false
+	wasmProject     bool // Automatically detected based on file structure
+	tinyGoInstalled bool // Cached TinyGo installation status
 
 	goWasmJsCache     string
 	tinyGoWasmJsCache string
@@ -24,6 +30,7 @@ type WasmConfig struct {
 	WebFilesFolder func() (string, string)
 	Log            io.Writer // For logging output to external systems (e.g., TUI, console)
 	FrontendPrefix []string  // Prefixes used to identify frontend files (e.g., "f.", "front.")
+	TinyGoCompiler bool      // Enable TinyGo compiler (default: false for faster development)
 }
 
 // New creates a new TinyWasm instance with the provided configuration
@@ -33,19 +40,80 @@ func New(c *WasmConfig) *TinyWasm {
 		ModulesFolder:  "modules",
 		mainInputFile:  "main.wasm.go",
 		mainOutputFile: "main.wasm",
+
+		// Initialize dynamic fields
+		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
+		wasmProject:     false,            // Auto-detected later
+		tinyGoInstalled: false,            // Verified on first use
 	}
+
+	// Check TinyGo installation status
+	w.verifyTinyGoInstallationStatus()
 
 	return w
 }
 
-// WasmProjectTinyGoJsUse returns whether TinyGo JS should be used
+// WasmProjectTinyGoJsUse returns dynamic state based on current configuration
 func (w *TinyWasm) WasmProjectTinyGoJsUse() (bool, bool) {
-	return true, true // Always use TinyGo for this package
+	return w.wasmProject, w.tinyGoCompiler
 }
 
-// TinyGoCompiler returns if TinyGo compiler should be used (always true for this package)
+// TinyGoCompiler returns if TinyGo compiler should be used (dynamic based on configuration)
 func (w *TinyWasm) TinyGoCompiler() bool {
-	return true // Always use TinyGo by default in the tinywasm package
+	return w.tinyGoCompiler && w.tinyGoInstalled
+}
+
+// SetTinyGoCompiler validates and sets the TinyGo compiler preference
+func (w *TinyWasm) SetTinyGoCompiler(newValue any) (string, error) {
+	boolValue, ok := newValue.(bool)
+	if !ok {
+		err := fmt.Errorf("TinyGoCompiler expects boolean value, got %T", newValue)
+		if w.Log != nil {
+			fmt.Fprintf(w.Log, "Error: %v\n", err)
+		}
+		return "", err
+	}
+
+	// If trying to enable TinyGo, verify it's installed
+	if boolValue && !w.tinyGoInstalled {
+		if err := w.VerifyTinyGoInstallation(); err != nil {
+			errMsg := fmt.Sprintf("Cannot enable TinyGo compiler: %v", err)
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Error: %s\n", errMsg)
+			}
+			return "", fmt.Errorf(errMsg)
+		}
+		w.tinyGoInstalled = true
+	}
+
+	w.tinyGoCompiler = boolValue
+
+	status := "disabled"
+	if boolValue {
+		status = "enabled"
+	}
+
+	msg := fmt.Sprintf("TinyGo compiler %s", status)
+	if w.Log != nil {
+		fmt.Fprintf(w.Log, "Info: %s\n", msg)
+	}
+
+	return msg, nil
+}
+
+// verifyTinyGoInstallationStatus checks and caches TinyGo installation status
+func (w *TinyWasm) verifyTinyGoInstallationStatus() {
+	if err := w.VerifyTinyGoInstallation(); err != nil {
+		w.tinyGoInstalled = false
+		if w.Log != nil {
+			fmt.Fprintf(w.Log, "Warning: TinyGo not available: %v\n", err)
+		}
+	} else {
+		w.tinyGoInstalled = true
+		if w.Log != nil {
+			fmt.Fprintf(w.Log, "Info: TinyGo installation verified\n")
+		}
+	}
 }
 
 // getWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -107,10 +108,40 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 			t.Fatal("Expected no error for non-write event")
 		}
 	})
+	t.Run("Verify TinyGo compiler is configurable", func(t *testing.T) {
+		// Test initial configuration
+		var outputBuffer bytes.Buffer
+		config := &WasmConfig{
+			WebFilesFolder: func() (string, string) { return webDir, "public" },
+			Log:            &outputBuffer,
+			TinyGoCompiler: false, // Start with Go standard compiler
+		}
 
-	t.Run("Verify TinyGo compiler is used by default", func(t *testing.T) {
-		if !tinyWasm.TinyGoCompiler() {
-			t.Fatal("Expected TinyGo compiler to be used by default in tinywasm package")
+		tinyWasm := New(config)
+
+		// Verify initial state
+		if tinyWasm.TinyGoCompiler() {
+			t.Fatal("Expected Go standard compiler to be used initially")
+		}
+
+		// Test setting TinyGo compiler
+		msg, err := tinyWasm.SetTinyGoCompiler(true)
+		if err != nil {
+			// TinyGo might not be installed, which is ok for testing
+			t.Logf("TinyGo not available: %v", err)
+		} else {
+			if !tinyWasm.TinyGoCompiler() {
+				t.Fatal("Expected TinyGo compiler to be enabled after setting")
+			}
+			if !strings.Contains(msg, "enabled") {
+				t.Fatalf("Expected 'enabled' message, got: %s", msg)
+			}
+		}
+
+		// Test invalid type
+		_, err = tinyWasm.SetTinyGoCompiler("invalid")
+		if err == nil {
+			t.Fatal("Expected error when setting invalid type")
 		}
 	})
 }
@@ -250,6 +281,95 @@ func TestFrontendPrefixConfiguration(t *testing.T) {
 				t.Errorf("ShouldCompileToWasm(%q, %q) = %v, want %v",
 					tc.fileName, tc.filePath, result, tc.expected)
 			}
+		})
+	}
+}
+
+// Test for compiler comparison functionality
+func TestCompilerComparison(t *testing.T) {
+	// Setup test environment
+	rootDir := "test"
+	webDir := filepath.Join(rootDir, "compilerTest")
+	defer os.RemoveAll(webDir)
+
+	publicDir := filepath.Join(webDir, "public")
+	if err := os.MkdirAll(publicDir, 0755); err != nil {
+		t.Fatalf("Error creating test directory: %v", err)
+	}
+
+	// Test data for compilation
+	testCases := []struct {
+		name           string
+		tinyGoEnabled  bool
+		expectedOutput string
+	}{
+		{
+			name:           "Go Standard Compiler",
+			tinyGoEnabled:  false,
+			expectedOutput: "Go standard compiler",
+		},
+		{
+			name:           "TinyGo Compiler",
+			tinyGoEnabled:  true,
+			expectedOutput: "TinyGo compiler",
+		},
+	}
+
+	// Create main.wasm.go file for testing
+	mainWasmPath := filepath.Join(webDir, "main.wasm.go")
+	wasmContent := `package main
+	
+	func main() {
+		println("Test WASM compilation")
+	}`
+	os.WriteFile(mainWasmPath, []byte(wasmContent), 0644)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var outputBuffer bytes.Buffer
+			config := &WasmConfig{
+				WebFilesFolder: func() (string, string) { return webDir, "public" },
+				Log:            &outputBuffer,
+				TinyGoCompiler: tc.tinyGoEnabled,
+			}
+
+			tinyWasm := New(config)
+
+			// Test compiler detection
+			if tc.tinyGoEnabled {
+				// Try to enable TinyGo (might fail if not installed)
+				_, err := tinyWasm.SetTinyGoCompiler(true)
+				if err != nil {
+					t.Logf("TinyGo not available, skipping: %v", err)
+					return
+				}
+			}
+
+			// Verify compiler selection
+			isUsingTinyGo := tinyWasm.TinyGoCompiler()
+			if tc.tinyGoEnabled && !isUsingTinyGo {
+				t.Logf("TinyGo requested but not available")
+			} else if !tc.tinyGoEnabled && isUsingTinyGo {
+				t.Error("Expected Go standard compiler but TinyGo is selected")
+			}
+
+			// Test compilation (this will fail but we can check the command preparation)
+			err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
+
+			// Check log output for compiler information
+			logOutput := outputBuffer.String()
+			if tc.tinyGoEnabled && tinyWasm.tinyGoInstalled {
+				if !strings.Contains(logOutput, "TinyGo") {
+					t.Errorf("Expected TinyGo compiler logs, got: %s", logOutput)
+				}
+			} else {
+				if !strings.Contains(logOutput, "Go standard") {
+					t.Errorf("Expected Go standard compiler logs, got: %s", logOutput)
+				}
+			}
+
+			// We expect compilation to fail in test environment, that's ok
+			t.Logf("Compilation test completed for %s (error expected in test env): %v", tc.name, err)
 		})
 	}
 }

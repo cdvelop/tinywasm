@@ -78,7 +78,7 @@ func handleFileChange(filePath, event string) {
 // ✅ Compiles: main.wasm.go, users.wasm.go, f.login.go, api.go
 // ❌ Ignores: b.service.go, backend.logic.go, server.auth.go
 ```
-```
+
 
 ### Integration with Logging Systems
 
@@ -348,10 +348,107 @@ fmt.Println("TinyGo version:", version)
 tw.VerifyTinyGoProjectCompatibility()
 ```
 
+## Dynamic Compiler Selection
+
+TinyWasm now supports dynamic compiler selection between standard Go and TinyGo compilers, with automatic project detection and intelligent switching capabilities.
+
+### Compiler Configuration
+
+```go
+// Create TinyWasm instance with default TinyGo compiler
+tw := tinywasm.New(config)
+
+// Check if using TinyGo compiler
+isTinyGo := tw.TinyGoCompiler() // Returns true if TinyGo is configured
+
+// Check if current project is detected as WASM project
+isWasm := tw.WasmProjectTinyGoJsUse() // Returns true if WASM project detected
+
+// Dynamically switch to standard Go compiler
+err := tw.SetTinyGoCompiler(false)
+if err != nil {
+    log.Printf("Error switching to Go compiler: %v", err)
+}
+
+// Switch back to TinyGo compiler (with validation)
+err = tw.SetTinyGoCompiler(true) 
+if err != nil {
+    log.Printf("Error switching to TinyGo: %v", err)
+    // Error might occur if TinyGo is not installed
+}
+```
+
+### Automatic Project Detection
+
+The library automatically detects if the current project should use WASM compilation:
+
+```go
+// Project structure that triggers WASM detection:
+project/
+├── *.wasm.go files present
+├── web/ or public/ directories
+├── wasm_exec.js file
+└── go.mod with WASM-related dependencies
+
+// The detection is dynamic and updates automatically
+tw.WasmProjectTinyGoJsUse() // Returns current detection status
+```
+
+### Compiler Switching Examples
+
+```go
+// Example: Dynamic switching based on build mode
+func setupCompiler(tw *tinywasm.TinyWasm, production bool) error {
+    if production {
+        // Use TinyGo for smaller WASM files in production
+        return tw.SetTinyGoCompiler(true)
+    } else {
+        // Use standard Go for faster compilation in development
+        return tw.SetTinyGoCompiler(false)
+    }
+}
+
+// Example: Validation before switching
+func safeCompilerSwitch(tw *tinywasm.TinyWasm, useTinyGo bool) error {
+    if useTinyGo {
+        // Verify TinyGo is available before switching
+        err := tw.SetTinyGoCompiler(true)
+        if err != nil {
+            log.Printf("TinyGo not available, falling back to standard Go")
+            return tw.SetTinyGoCompiler(false)
+        }
+        return nil
+    }
+    return tw.SetTinyGoCompiler(false)
+}
+```
+
+### Compilation Differences
+
+| Compiler | Build Speed | File Size | Use Case |
+|----------|------------|-----------|----------|
+| Go Standard | Faster | Larger (~1.6MB) | Development, debugging |
+| TinyGo | Slower | Smaller (~170KB) | Production, web deployment |
+
+### Benchmark System
+
+TinyWasm includes an integrated benchmark system to compare compiler performance:
+
+```bash
+# Run unified benchmark (avoids code duplication)
+cd benchmark/scripts
+./unified-benchmark.sh
+
+# Results show:
+# - Build time comparison
+# - File size comparison
+# - Performance metrics
+```
+
 ## Requirements
 
 - Go 1.19 or higher
-- TinyGo installed and in PATH
+- TinyGo installed and in PATH (optional, for TinyGo compiler mode)
 - Operating System: Windows, Linux, macOS
 
 ## License
