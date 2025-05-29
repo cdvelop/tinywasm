@@ -1,6 +1,7 @@
 package tinywasm
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -81,7 +82,7 @@ func (w *TinyWasm) SetTinyGoCompiler(newValue any) (string, error) {
 			if w.Log != nil {
 				fmt.Fprintf(w.Log, "Error: %s\n", errMsg)
 			}
-			return "", fmt.Errorf(errMsg)
+			return errMsg, errors.New(errMsg)
 		}
 		w.tinyGoInstalled = true
 	}
