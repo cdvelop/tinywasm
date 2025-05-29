@@ -110,8 +110,19 @@ func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 		}
 	} else {
 		w.tinyGoInstalled = true
-		if w.Log != nil {
-			fmt.Fprintf(w.Log, "Info: TinyGo installation verified\n")
+
+		// If TinyGo is installed, check its version
+		version, err := w.GetTinyGoVersion()
+		if err != nil {
+			w.tinyGoInstalled = false
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Warning: TinyGo version check failed: %v\n", err)
+			}
+		} else {
+			w.tinyGoInstalled = true
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Info: TinyGo installation verified %v  \n", version)
+			}
 		}
 	}
 }
