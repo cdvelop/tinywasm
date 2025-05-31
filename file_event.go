@@ -18,9 +18,8 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	if filePath == "" {
 		return errors.New(e + "filePath is empty")
 	}
-
 	// Auto-detect WASM project based on file structure
-	w.updateWasmProjectDetection(fileName, filePath)
+	w.wasmDetectionFunc(fileName, filePath)
 
 	fmt.Fprint(w.Log, "Wasm", extension, event, "...", filePath)
 	// Check if this file should trigger WASM compilation
@@ -71,37 +70,41 @@ func (w *TinyWasm) UnobservedFiles() []string {
 	}
 }
 
-// updateWasmProjectDetection automatically detects if this is a WASM project based on file structure
-func (w *TinyWasm) updateWasmProjectDetection(fileName, filePath string) {
+// updateWasmProjectDetectionActive automatically detects if this is a WASM project and configures VS Code
+func (w *TinyWasm) updateWasmProjectDetectionActive(fileName, filePath string) {
+	wasmDetected := false
+
 	// Check for main.wasm.go file (strong indicator of WASM project)
 	if fileName == w.mainInputFile {
 		if !w.wasmProject {
 			w.wasmProject = true
-			if w.Log != nil {
-				fmt.Fprintf(w.Log, "Auto-detected WASM project: found %s\n", fileName)
-			}
+			wasmDetected = true
 		}
-		return
 	}
 
 	// Check for .wasm.go files in modules (another strong indicator)
 	if strings.HasSuffix(fileName, ".wasm.go") {
 		if !w.wasmProject {
 			w.wasmProject = true
-			if w.Log != nil {
-				fmt.Fprintf(w.Log, "Auto-detected WASM project: found WASM module %s\n", fileName)
-			}
+			wasmDetected = true
 		}
-		return
 	}
 
 	// Check for frontend files in modules directory
 	if w.IsFrontendFile(fileName) && (strings.Contains(filePath, "/modules/") || strings.Contains(filePath, "\\modules\\")) {
 		if !w.wasmProject {
 			w.wasmProject = true
-			if w.Log != nil {
-				fmt.Fprintf(w.Log, "Auto-detected WASM project: found frontend file %s\n", fileName)
-			}
+			wasmDetected = true
 		}
 	}
+	// If WASM project detected, configure VS Code and switch to inactive function
+	if wasmDetected {
+		w.VisualStudioCodeWasmEnvConfig()
+		w.wasmDetectionFunc = w.updateWasmProjectDetectionInactive
+	}
+}
+
+// updateWasmProjectDetectionInactive is a no-op function used after VS Code is configured
+func (w *TinyWasm) updateWasmProjectDetectionInactive(fileName, filePath string) {
+	// Do nothing - VS Code already configured
 }

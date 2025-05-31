@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -132,12 +131,10 @@ func TestCompilerComparison(t *testing.T) {
 				t.Logf("TinyGo requested but not available")
 			} else if !tc.tinyGoEnabled && isUsingTinyGo {
 				t.Error("Expected Go standard compiler but TinyGo is selected")
-			}
-			// Test compilation (this will fail but we can check the command preparation)
+			} // Test compilation (this will fail but we can check the command preparation)
 			err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
 
 			// Check that the correct compiler is being used
-			logOutput := outputBuffer.String()
 			if tc.tinyGoEnabled && tinyWasm.tinyGoInstalled {
 				// For TinyGo, verify it's actually being used
 				if !tinyWasm.TinyGoCompiler() {
@@ -150,9 +147,9 @@ func TestCompilerComparison(t *testing.T) {
 				}
 			}
 
-			// Check that auto-detection logs are present (this confirms the system is working)
-			if !strings.Contains(logOutput, "Auto-detected WASM project") {
-				t.Errorf("Expected auto-detection logs, got: %s", logOutput)
+			// Check that the WASM project was detected (this confirms the system is working)
+			if !tinyWasm.wasmProject {
+				t.Errorf("Expected WASM project to be detected for %s", tc.name)
 			}
 
 			// We expect compilation to fail in test environment, that's ok

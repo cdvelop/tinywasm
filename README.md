@@ -135,6 +135,40 @@ config := &tinywasm.WasmConfig{
 - **IDEs and editors**: Support for development extensions with frontend/backend awareness
 - **Development servers**: On-demand compilation with smart file filtering
 
+### VS Code Integration
+
+TinyWasm provides automatic VS Code configuration for seamless WASM development. When a WASM project is detected (when any `.wasm.go` file is created or modified), TinyWasm automatically configures VS Code settings to resolve the common `"could not import syscall/js"` error.
+
+#### Automatic Configuration Features:
+- **Automatic detection**: Triggers when any `.wasm.go` file is detected in the project
+- **Environment setup**: Configures `GOOS=js` and `GOARCH=wasm` environment variables
+- **IntelliSense support**: Enables proper code completion for `syscall/js` and WASM-specific packages
+- **Error resolution**: Eliminates "could not import syscall/js" and similar WASM import errors
+- **Cross-platform**: Works on Windows, macOS, and Linux
+- **Hidden directories**: On Windows, the `.vscode` directory is automatically hidden for cleaner project view
+
+#### How it Works:
+When TinyWasm detects a WASM project, it automatically creates or updates `.vscode/settings.json` with:
+
+```json
+{
+  "go.toolsEnvVars": {
+    "GOOS": "js",
+    "GOARCH": "wasm"
+  }
+}
+```
+
+#### Manual Configuration:
+If you need to manually configure VS Code for an existing project:
+
+```go
+tw := tinywasm.New(config)
+tw.VisualStudioCodeWasmEnvConfig() // Manually configure VS Code settings
+```
+
+This integration ensures that VS Code's Go extension properly recognizes WASM imports and provides accurate error detection, IntelliSense, and code completion for your WASM development workflow.
+
 ### Compatible Development Kits
 This package can be easily integrated into:
 - Automated build systems with file type detection

@@ -32,6 +32,10 @@ type TinyWasm struct {
 	builderTinyGo *gobuild.GoBuild // TinyGo builder for production/optimized builds
 	builderGo     *gobuild.GoBuild // Go standard builder for development/fast builds
 	builder       *gobuild.GoBuild // Current active builder (points to one of the above)
+
+	// Function pointer for efficient WASM project detection
+	wasmDetectionFunc func(string, string) // (fileName, filePath)
+	rootDir           string               // Project root directory, default "."
 }
 
 // Config holds configuration for WASM compilation
@@ -55,12 +59,16 @@ func New(c *Config) *TinyWasm {
 		Config:        c,
 		ModulesFolder: "modules",
 		mainInputFile: "main.wasm.go",
+		rootDir:       ".", // Default root directory
 
 		// Initialize dynamic fields
 		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
 		wasmProject:     false,            // Auto-detected later
 		tinyGoInstalled: false,            // Verified on first use
 	}
+
+	// Initialize WASM detection function pointer (starts active)
+	w.wasmDetectionFunc = w.updateWasmProjectDetectionActive
 
 	// Check TinyGo installation status
 	w.verifyTinyGoInstallationStatus()
