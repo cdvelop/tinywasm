@@ -61,7 +61,7 @@ func TestVSCodeConfiguration(t *testing.T) {
 		t.Fatalf("Failed to read settings.json: %v", err)
 	}
 
-	var settings map[string]interface{}
+	var settings map[string]any
 	if err := json.Unmarshal(data, &settings); err != nil {
 		t.Fatalf("Failed to parse settings.json: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestVSCodeConfiguration(t *testing.T) {
 		t.Error("settings.json should contain gopls configuration")
 	}
 
-	goplsMap, ok := goplsConfig.(map[string]interface{})
+	goplsMap, ok := goplsConfig.(map[string]any)
 	if !ok {
 		t.Error("gopls should be a map")
 	}
@@ -81,7 +81,7 @@ func TestVSCodeConfiguration(t *testing.T) {
 		t.Error("gopls should contain env configuration")
 	}
 
-	envVars, ok := env.(map[string]interface{})
+	envVars, ok := env.(map[string]any)
 	if !ok {
 		t.Error("gopls.env should be a map")
 	}

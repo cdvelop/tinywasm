@@ -53,7 +53,6 @@ func (w *TinyWasm) OutputPathMainFileWasm() string {
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
-
 	return w.builder.UnobservedFiles()
 }
 

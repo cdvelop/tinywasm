@@ -18,7 +18,7 @@ func main() {
 }
 
 // processText handles text processing operations
-func processText(this js.Value, args []js.Value) interface{} {
+func processText(this js.Value, args []js.Value) any {
 	if len(args) < 1 {
 		return "Error: No text provided"
 	}
@@ -37,7 +37,7 @@ func processText(this js.Value, args []js.Value) interface{} {
 }
 
 // calculateNumbers performs basic calculations
-func calculateNumbers(this js.Value, args []js.Value) interface{} {
+func calculateNumbers(this js.Value, args []js.Value) any {
 	if len(args) < 2 {
 		return "Error: Need 2 numbers"
 	}
@@ -57,7 +57,7 @@ func calculateNumbers(this js.Value, args []js.Value) interface{} {
 }
 
 // testStrings performs string operations
-func testStrings(this js.Value, args []js.Value) interface{} {
+func testStrings(this js.Value, args []js.Value) any {
 	if len(args) < 1 {
 		return "Error: No string provided"
 	}

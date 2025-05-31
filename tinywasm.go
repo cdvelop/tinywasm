@@ -146,14 +146,6 @@ func (w *TinyWasm) getCurrentBuilder() {
 	}
 }
 
-// getCompilerCommand returns the appropriate compiler command based on current settings
-func (w *TinyWasm) getCompilerCommand() string {
-	if w.TinyGoCompiler() {
-		return "tinygo"
-	}
-	return "go"
-}
-
 // updateBuilderConfig updates the current builder when compiler settings change
 func (w *TinyWasm) updateBuilderConfig() {
 	if w.builder != nil {
