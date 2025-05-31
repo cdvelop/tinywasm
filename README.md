@@ -152,12 +152,22 @@ When TinyWasm detects a WASM project, it automatically creates or updates `.vsco
 
 ```json
 {
-  "go.toolsEnvVars": {
-    "GOOS": "js",
-    "GOARCH": "wasm"
+  "gopls": {
+    "env": {
+      "GOOS": "js",
+      "GOARCH": "wasm"
+    }
+  },
+  "go.alternateTools": {
+    "go": "go"
   }
 }
 ```
+
+This configuration ensures that:
+- **gopls** (Go language server) understands WASM context for proper IntelliSense
+- **Tests and builds** continue to work normally with native environment
+- **No interference** with standard Go development workflow
 
 #### Manual Configuration:
 If you need to manually configure VS Code for an existing project:

@@ -65,25 +65,34 @@ func TestVSCodeConfiguration(t *testing.T) {
 	if err := json.Unmarshal(data, &settings); err != nil {
 		t.Fatalf("Failed to parse settings.json: %v", err)
 	}
-
-	// Check for go.toolsEnvVars
-	toolsEnvVars, ok := settings["go.toolsEnvVars"]
+	// Check for gopls configuration (new approach)
+	goplsConfig, ok := settings["gopls"]
 	if !ok {
-		t.Error("settings.json should contain go.toolsEnvVars")
+		t.Error("settings.json should contain gopls configuration")
 	}
 
-	envVars, ok := toolsEnvVars.(map[string]interface{})
+	goplsMap, ok := goplsConfig.(map[string]interface{})
 	if !ok {
-		t.Error("go.toolsEnvVars should be a map")
+		t.Error("gopls should be a map")
 	}
 
-	// Verify WASM environment variables
+	env, ok := goplsMap["env"]
+	if !ok {
+		t.Error("gopls should contain env configuration")
+	}
+
+	envVars, ok := env.(map[string]interface{})
+	if !ok {
+		t.Error("gopls.env should be a map")
+	}
+
+	// Verify WASM environment variables in gopls config
 	if envVars["GOOS"] != "js" {
-		t.Errorf("Expected GOOS=js, got %v", envVars["GOOS"])
+		t.Errorf("Expected GOOS=js in gopls.env, got %v", envVars["GOOS"])
 	}
 
 	if envVars["GOARCH"] != "wasm" {
-		t.Errorf("Expected GOARCH=wasm, got %v", envVars["GOARCH"])
+		t.Errorf("Expected GOARCH=wasm in gopls.env, got %v", envVars["GOARCH"])
 	}
 
 	t.Logf("VS Code configuration test completed successfully")

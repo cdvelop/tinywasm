@@ -3,7 +3,6 @@ package tinywasm
 import (
 	"errors"
 	"fmt"
-	"path"
 	"strings"
 )
 
@@ -52,22 +51,10 @@ func (w *TinyWasm) OutputPathMainFileWasm() string {
 	return w.MainOutputFile()
 }
 
-// wasmFilesOutputDirectory returns the directory where WASM files are output e.g: web/public
-func (w *TinyWasm) wasmFilesOutputDirectory() string {
-	rootFolder, subfolder := w.WebFilesFolder()
-	return path.Join(rootFolder, subfolder)
-}
-
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
-	filename := "main.wasm" // default fallback
-	if w.builder != nil {
-		filename = w.builder.MainOutputFileNameWithExtension()
-	}
-	return []string{
-		filename, // main.wasm - generated file, should not be watched
-		// main.wasm.go should be watched as developers can modify it
-	}
+
+	return w.builder.UnobservedFiles()
 }
 
 // updateWasmProjectDetectionActive automatically detects if this is a WASM project and configures VS Code

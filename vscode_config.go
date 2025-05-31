@@ -40,12 +40,19 @@ func (w *TinyWasm) VisualStudioCodeWasmEnvConfig() { // Create .vscode directory
 		}
 	} else {
 		settings = make(map[string]any)
+	} // Configure gopls (Go language server) for WASM development without affecting tests
+	// This provides proper IntelliSense for syscall/js and WASM packages
+	settings["gopls"] = map[string]interface{}{
+		"env": map[string]string{
+			"GOOS":   "js",
+			"GOARCH": "wasm",
+		},
 	}
 
-	// Add WASM environment variables
-	settings["go.toolsEnvVars"] = map[string]string{
-		"GOOS":   "js",
-		"GOARCH": "wasm",
+	// Alternative: Use go.toolsEnvVars but exclude specific tools that should use native env
+	// This gives better IntelliSense while allowing tests to run normally
+	settings["go.alternateTools"] = map[string]string{
+		"go": "go", // Use system Go for testing and building
 	}
 	// Write updated settings
 	data, err := json.MarshalIndent(settings, "", "  ")

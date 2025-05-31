@@ -154,11 +154,11 @@ func TestUnobservedFiles(t *testing.T) {
 
 	tinyWasm := New(config)
 	unobservedFiles := tinyWasm.UnobservedFiles()
-
-	// Should only contain main.wasm (generated file)
-	expectedFiles := []string{"main.wasm"}
-
+	// Should contain main.wasm and main_temp.wasm (generated files from gobuild)
+	expectedFiles := []string{"main.wasm", "main_temp.wasm"}
 	if len(unobservedFiles) != len(expectedFiles) {
+		t.Logf("Actual unobserved files: %v", unobservedFiles)
+		t.Logf("Expected unobserved files: %v", expectedFiles)
 		t.Fatalf("Expected %d unobserved files, got %d", len(expectedFiles), len(unobservedFiles))
 	}
 

@@ -1,6 +1,11 @@
 {
-  "go.toolsEnvVars": {
-    "GOARCH": "wasm",
-    "GOOS": "js"
+  "go.alternateTools": {
+    "go": "go"
+  },
+  "gopls": {
+    "env": {
+      "GOARCH": "wasm",
+      "GOOS": "js"
+    }
   }
 }
