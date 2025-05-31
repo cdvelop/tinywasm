@@ -21,10 +21,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatalf("Error creating test directory: %v", err)
 		}
-	}
-	// Configure TinyWasm handler with a buffer for testing output
+	} // Configure TinyWasm handler with a buffer for testing output
 	var outputBuffer bytes.Buffer
-	config := &WasmConfig{
+	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
 		Log:            &outputBuffer,
 	}
@@ -108,10 +107,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 			t.Fatal("Expected no error for non-write event")
 		}
 	})
-	t.Run("Verify TinyGo compiler is configurable", func(t *testing.T) {
-		// Test initial configuration
+	t.Run("Verify TinyGo compiler is configurable", func(t *testing.T) { // Test initial configuration
 		var outputBuffer bytes.Buffer
-		config := &WasmConfig{
+		config := &Config{
 			WebFilesFolder: func() (string, string) { return webDir, "public" },
 			Log:            &outputBuffer,
 			TinyGoCompiler: false, // Start with Go standard compiler
@@ -149,7 +147,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 // Test for UnobservedFiles method
 func TestUnobservedFiles(t *testing.T) {
 	var outputBuffer bytes.Buffer
-	config := &WasmConfig{
+	config := &Config{
 		WebFilesFolder: func() (string, string) { return "web", "public" },
 		Log:            &outputBuffer,
 	}
@@ -188,9 +186,8 @@ func TestFrontendPrefixConfiguration(t *testing.T) {
 	modulesDir := filepath.Join(webDir, "modules")
 
 	var outputBuffer bytes.Buffer
-
 	// Test with custom frontend prefixes
-	config := &WasmConfig{
+	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
 		Log:            &outputBuffer,
 		FrontendPrefix: []string{"client.", "view.", "component."},

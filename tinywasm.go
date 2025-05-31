@@ -4,17 +4,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/cdvelop/gobuild"
 )
 
 // TinyWasm provides WebAssembly compilation capabilities with dynamic compiler selection
 type TinyWasm struct {
-	*WasmConfig
-	ModulesFolder  string // default "modules". for test change eg: "test/modules"
-	mainInputFile  string // eg: main.wasm.go
-	mainOutputFile string // eg: main.wasm
+	*Config
+	ModulesFolder string // default "modules". for test change eg: "test/modules"
+	mainInputFile string // eg: main.wasm.go
 
 	// Dynamic compiler selection fields
 	tinyGoCompiler  bool // Use TinyGo compiler when true, Go standard when false
@@ -23,24 +27,34 @@ type TinyWasm struct {
 
 	goWasmJsCache     string
 	tinyGoWasmJsCache string
+
+	// gobuild integration - dual builder architecture
+	builderTinyGo *gobuild.GoBuild // TinyGo builder for production/optimized builds
+	builderGo     *gobuild.GoBuild // Go standard builder for development/fast builds
+	builder       *gobuild.GoBuild // Current active builder (points to one of the above)
 }
 
-// WasmConfig holds configuration for WASM compilation
-type WasmConfig struct {
+// Config holds configuration for WASM compilation
+type Config struct {
 	// WebFilesFolder returns root web folder and subfolder eg: "web","public"
 	WebFilesFolder func() (string, string)
 	Log            io.Writer // For logging output to external systems (e.g., TUI, console)
 	FrontendPrefix []string  // Prefixes used to identify frontend files (e.g., "f.", "front.")
 	TinyGoCompiler bool      // Enable TinyGo compiler (default: false for faster development)
+
+	// gobuild integration fields
+	Callback           func(error)     // Optional callback for async compilation
+	CompilingArguments func() []string // Build arguments for compilation (e.g., ldflags)
 }
 
 // New creates a new TinyWasm instance with the provided configuration
-func New(c *WasmConfig) *TinyWasm {
+// Timeout is set to 40 seconds maximum as TinyGo compilation can be slow
+// Default values: ModulesFolder="modules", mainInputFile="main.wasm.go"
+func New(c *Config) *TinyWasm {
 	w := &TinyWasm{
-		WasmConfig:     c,
-		ModulesFolder:  "modules",
-		mainInputFile:  "main.wasm.go",
-		mainOutputFile: "main.wasm",
+		Config:        c,
+		ModulesFolder: "modules",
+		mainInputFile: "main.wasm.go",
 
 		// Initialize dynamic fields
 		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
@@ -50,6 +64,9 @@ func New(c *WasmConfig) *TinyWasm {
 
 	// Check TinyGo installation status
 	w.verifyTinyGoInstallationStatus()
+
+	// Initialize gobuild instance with WASM-specific configuration
+	w.initializeBuilder()
 
 	return w
 }
@@ -64,7 +81,84 @@ func (w *TinyWasm) TinyGoCompiler() bool {
 	return w.tinyGoCompiler && w.tinyGoInstalled
 }
 
+// initializeBuilder configures both TinyGo and Go builders for WASM compilation
+func (w *TinyWasm) initializeBuilder() {
+	rootFolder, subFolder := w.WebFilesFolder()
+	mainFilePath := path.Join(rootFolder, w.mainInputFile)
+	outFolder := path.Join(rootFolder, subFolder)
+
+	// Base configuration shared by both builders
+	baseConfig := gobuild.Config{
+		MainFilePath: mainFilePath,
+		OutName:      "main", // Output will be main.wasm
+		Extension:    ".wasm",
+		OutFolder:    outFolder,
+		Log:          w.Log,
+		Timeout:      40 * time.Second, // TinyGo can be slow, allow up to 40 seconds
+		Callback:     w.Callback,
+	}
+
+	// Configure TinyGo builder (production/optimized)
+	tinyGoConfig := baseConfig
+	tinyGoConfig.Command = "tinygo"
+	tinyGoConfig.CompilingArguments = func() []string {
+		// TinyGo specific arguments (fixed args first, then user args)
+		args := []string{"-target", "wasm", "--no-debug"}
+		if w.CompilingArguments != nil {
+			args = append(args, w.CompilingArguments()...)
+		}
+		return args
+	}
+	w.builderTinyGo = gobuild.New(&tinyGoConfig)
+
+	// Configure Go standard builder (development/fast)
+	goConfig := baseConfig
+	goConfig.Command = "go"
+	goConfig.Env = []string{"GOOS=js", "GOARCH=wasm"} // Required for WASM compilation
+	goConfig.CompilingArguments = func() []string {
+		// Go standard specific arguments (fixed args first, then user args)
+		args := []string{"-tags", "dev"}
+		if w.CompilingArguments != nil {
+			args = append(args, w.CompilingArguments()...)
+		}
+		return args
+	}
+	w.builderGo = gobuild.New(&goConfig)
+
+	// Set current builder based on compiler selection
+	w.getCurrentBuilder()
+}
+
+// getCurrentBuilder sets the current active builder based on TinyGoCompiler setting
+func (w *TinyWasm) getCurrentBuilder() {
+	if w.TinyGoCompiler() {
+		w.builder = w.builderTinyGo
+	} else {
+		w.builder = w.builderGo
+	}
+}
+
+// getCompilerCommand returns the appropriate compiler command based on current settings
+func (w *TinyWasm) getCompilerCommand() string {
+	if w.TinyGoCompiler() {
+		return "tinygo"
+	}
+	return "go"
+}
+
+// updateBuilderConfig updates the current builder when compiler settings change
+func (w *TinyWasm) updateBuilderConfig() {
+	if w.builder != nil {
+		// Cancel any ongoing compilation
+		w.builder.Cancel()
+	}
+
+	// Update current builder selection
+	w.getCurrentBuilder()
+}
+
 // SetTinyGoCompiler validates and sets the TinyGo compiler preference
+// Automatically recompiles main.wasm.go when compiler type changes
 func (w *TinyWasm) SetTinyGoCompiler(newValue any) (string, error) {
 	boolValue, ok := newValue.(bool)
 	if !ok {
@@ -74,6 +168,9 @@ func (w *TinyWasm) SetTinyGoCompiler(newValue any) (string, error) {
 		}
 		return "", err
 	}
+
+	// Store previous compiler state to detect changes
+	previousCompiler := w.tinyGoCompiler
 
 	// If trying to enable TinyGo, verify it's installed
 	if boolValue && !w.tinyGoInstalled {
@@ -99,7 +196,41 @@ func (w *TinyWasm) SetTinyGoCompiler(newValue any) (string, error) {
 		fmt.Fprintf(w.Log, "Info: %s\n", msg)
 	}
 
+	// If compiler type changed, update builder config and recompile
+	if previousCompiler != w.tinyGoCompiler {
+		w.updateBuilderConfig()
+
+		// Automatically recompile main.wasm.go if it exists
+		if err := w.recompileMainWasm(); err != nil {
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Warning: Auto-recompilation failed: %v\n", err)
+			}
+		} else {
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Info: Auto-recompilation completed with %s\n", status)
+			}
+		}
+	}
+
 	return msg, nil
+}
+
+// recompileMainWasm recompiles the main WASM file if it exists
+func (w *TinyWasm) recompileMainWasm() error {
+	if w.builder == nil {
+		return errors.New("builder not initialized")
+	}
+
+	rootFolder, _ := w.WebFilesFolder()
+	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
+
+	// Check if main.wasm.go exists
+	if _, err := os.Stat(mainWasmPath); err != nil {
+		return errors.New("main WASM file not found: " + mainWasmPath)
+	}
+
+	// Use gobuild to compile
+	return w.builder.CompileProgram()
 }
 
 // verifyTinyGoInstallationStatus checks and caches TinyGo installation status
@@ -226,4 +357,13 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 
 	// All other files should be ignored
 	return false
+}
+
+// MainOutputFile returns the complete path to the main WASM output file
+func (w *TinyWasm) MainOutputFile() string {
+	if w.builder == nil {
+		return "main.wasm" // fallback
+	}
+	rootFolder, subFolder := w.WebFilesFolder()
+	return path.Join(rootFolder, subFolder, w.builder.MainOutputFileNameWithExtension())
 }

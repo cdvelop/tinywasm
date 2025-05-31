@@ -3,8 +3,6 @@ package tinywasm
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 	"path"
 	"strings"
 )
@@ -14,7 +12,7 @@ import (
 // extension: file extension (e.g., .go)
 // filePath: full path to the file (e.g., web/public/wasm/main.wasm.go, modules/users/wasm/users.wasm.go, modules/auth/f.logout.go)
 // event: type of file event (e.g., create, remove, write, rename)
-func (h *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) error {
+func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) error {
 	const e = "NewFileEvent Wasm"
 
 	if filePath == "" {
@@ -22,54 +20,29 @@ func (h *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	}
 
 	// Auto-detect WASM project based on file structure
-	h.updateWasmProjectDetection(fileName, filePath)
+	w.updateWasmProjectDetection(fileName, filePath)
 
-	fmt.Fprint(h.Log, "Wasm", extension, event, "...", filePath)
+	fmt.Fprint(w.Log, "Wasm", extension, event, "...", filePath)
 	// Check if this file should trigger WASM compilation
-	if !h.ShouldCompileToWasm(fileName, filePath) {
+	if !w.ShouldCompileToWasm(fileName, filePath) {
 		// File should be ignored (backend file or unknown type)
 		return nil
 	}
-
 	if event != "write" {
 		return nil
 	}
-	// Single WASM output: always compile main.wasm.go to main.wasm
-	rootFolder, _ := h.WebFilesFolder()
-	inputFilePath := path.Join(rootFolder, h.mainInputFile)
-	outputFilePath := h.OutputPathMainFileWasm()
 
-	// Check if the main.wasm.go file exists
-	if _, err := os.Stat(inputFilePath); err != nil {
-		// Main WASM file not found
-		return errors.New("main WASM file not found: " + inputFilePath)
+	// Use gobuild for compilation instead of direct exec.Command
+	if w.builder == nil {
+		return errors.New("builder not initialized")
 	}
 
-	var cmd *exec.Cmd
-	var flags string
+	// Update builder configuration in case compiler settings have changed
+	w.updateBuilderConfig()
 
-	// Adjust compilation parameters according to dynamic configuration
-	if h.TinyGoCompiler() {
-		if h.Log != nil {
-			fmt.Fprintf(h.Log, "Compiling with TinyGo compiler...\n")
-		}
-		cmd = exec.Command("tinygo", "build", "-o", outputFilePath, "-target", "wasm", "--no-debug", "-ldflags", flags, inputFilePath)
-	} else {
-		if h.Log != nil {
-			fmt.Fprintf(h.Log, "Compiling with Go standard compiler...\n")
-		}
-		cmd = exec.Command("go", "build", "-o", outputFilePath, "-tags", "dev", "-ldflags", flags, "-v", inputFilePath)
-		cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
-	}
-
-	output, er := cmd.CombinedOutput()
-	if er != nil {
-		return errors.New("compiling to WebAssembly error: " + er.Error() + " string(output):" + string(output))
-	}
-
-	// Check if the wasm file was created correctly
-	if _, er := os.Stat(outputFilePath); er != nil {
-		return errors.New("wasm file was not created: " + er.Error())
+	// Compile using gobuild
+	if err := w.builder.CompileProgram(); err != nil {
+		return errors.New("compiling to WebAssembly error: " + err.Error())
 	}
 
 	return nil
@@ -77,7 +50,7 @@ func (h *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 
 // OutputPathMainFileWasm returns the output path for the main WASM file e.g: web/public/wasm/main.wasm
 func (w *TinyWasm) OutputPathMainFileWasm() string {
-	return path.Join(w.wasmFilesOutputDirectory(), w.mainOutputFile)
+	return w.MainOutputFile()
 }
 
 // wasmFilesOutputDirectory returns the directory where WASM files are output e.g: web/public
@@ -88,20 +61,24 @@ func (w *TinyWasm) wasmFilesOutputDirectory() string {
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
+	filename := "main.wasm" // default fallback
+	if w.builder != nil {
+		filename = w.builder.MainOutputFileNameWithExtension()
+	}
 	return []string{
-		w.mainOutputFile, // main.wasm - generated file, should not be watched
+		filename, // main.wasm - generated file, should not be watched
 		// main.wasm.go should be watched as developers can modify it
 	}
 }
 
 // updateWasmProjectDetection automatically detects if this is a WASM project based on file structure
-func (h *TinyWasm) updateWasmProjectDetection(fileName, filePath string) {
+func (w *TinyWasm) updateWasmProjectDetection(fileName, filePath string) {
 	// Check for main.wasm.go file (strong indicator of WASM project)
-	if fileName == h.mainInputFile {
-		if !h.wasmProject {
-			h.wasmProject = true
-			if h.Log != nil {
-				fmt.Fprintf(h.Log, "Auto-detected WASM project: found %s\n", fileName)
+	if fileName == w.mainInputFile {
+		if !w.wasmProject {
+			w.wasmProject = true
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Auto-detected WASM project: found %s\n", fileName)
 			}
 		}
 		return
@@ -109,21 +86,21 @@ func (h *TinyWasm) updateWasmProjectDetection(fileName, filePath string) {
 
 	// Check for .wasm.go files in modules (another strong indicator)
 	if strings.HasSuffix(fileName, ".wasm.go") {
-		if !h.wasmProject {
-			h.wasmProject = true
-			if h.Log != nil {
-				fmt.Fprintf(h.Log, "Auto-detected WASM project: found WASM module %s\n", fileName)
+		if !w.wasmProject {
+			w.wasmProject = true
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Auto-detected WASM project: found WASM module %s\n", fileName)
 			}
 		}
 		return
 	}
 
 	// Check for frontend files in modules directory
-	if h.IsFrontendFile(fileName) && (strings.Contains(filePath, "/modules/") || strings.Contains(filePath, "\\modules\\")) {
-		if !h.wasmProject {
-			h.wasmProject = true
-			if h.Log != nil {
-				fmt.Fprintf(h.Log, "Auto-detected WASM project: found frontend file %s\n", fileName)
+	if w.IsFrontendFile(fileName) && (strings.Contains(filePath, "/modules/") || strings.Contains(filePath, "\\modules\\")) {
+		if !w.wasmProject {
+			w.wasmProject = true
+			if w.Log != nil {
+				fmt.Fprintf(w.Log, "Auto-detected WASM project: found frontend file %s\n", fileName)
 			}
 		}
 	}

@@ -16,9 +16,8 @@ func TestShouldCompileToWasm(t *testing.T) {
 	defer os.RemoveAll(webDir)
 
 	modulesDir := filepath.Join(webDir, "modules")
-
 	var outputBuffer bytes.Buffer
-	config := &WasmConfig{
+	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
 		Log:            &outputBuffer,
 		FrontendPrefix: []string{"f.", "frontend.", "ui."},
@@ -82,22 +81,18 @@ func TestCompilerComparison(t *testing.T) {
 	if err := os.MkdirAll(publicDir, 0755); err != nil {
 		t.Fatalf("Error creating test directory: %v", err)
 	}
-
 	// Test data for compilation
 	testCases := []struct {
-		name           string
-		tinyGoEnabled  bool
-		expectedOutput string
+		name          string
+		tinyGoEnabled bool
 	}{
 		{
-			name:           "Go Standard Compiler",
-			tinyGoEnabled:  false,
-			expectedOutput: "Go standard compiler",
+			name:          "Go Standard Compiler",
+			tinyGoEnabled: false,
 		},
 		{
-			name:           "TinyGo Compiler",
-			tinyGoEnabled:  true,
-			expectedOutput: "TinyGo compiler",
+			name:          "TinyGo Compiler",
+			tinyGoEnabled: true,
 		},
 	}
 
@@ -113,7 +108,7 @@ func TestCompilerComparison(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var outputBuffer bytes.Buffer
-			config := &WasmConfig{
+			config := &Config{
 				WebFilesFolder: func() (string, string) { return webDir, "public" },
 				Log:            &outputBuffer,
 				TinyGoCompiler: tc.tinyGoEnabled,
@@ -138,20 +133,26 @@ func TestCompilerComparison(t *testing.T) {
 			} else if !tc.tinyGoEnabled && isUsingTinyGo {
 				t.Error("Expected Go standard compiler but TinyGo is selected")
 			}
-
 			// Test compilation (this will fail but we can check the command preparation)
 			err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
 
-			// Check log output for compiler information
+			// Check that the correct compiler is being used
 			logOutput := outputBuffer.String()
 			if tc.tinyGoEnabled && tinyWasm.tinyGoInstalled {
-				if !strings.Contains(logOutput, "TinyGo") {
-					t.Errorf("Expected TinyGo compiler logs, got: %s", logOutput)
+				// For TinyGo, verify it's actually being used
+				if !tinyWasm.TinyGoCompiler() {
+					t.Errorf("Expected TinyGo compiler to be enabled, but it's not")
 				}
 			} else {
-				if !strings.Contains(logOutput, "Go standard") {
-					t.Errorf("Expected Go standard compiler logs, got: %s", logOutput)
+				// For Go standard, verify TinyGo is not being used
+				if tinyWasm.TinyGoCompiler() {
+					t.Errorf("Expected Go standard compiler, but TinyGo is enabled")
 				}
+			}
+
+			// Check that auto-detection logs are present (this confirms the system is working)
+			if !strings.Contains(logOutput, "Auto-detected WASM project") {
+				t.Errorf("Expected auto-detection logs, got: %s", logOutput)
 			}
 
 			// We expect compilation to fail in test environment, that's ok

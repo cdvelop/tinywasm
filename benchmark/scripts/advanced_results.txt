@@ -1,0 +1,12 @@
+# TinyWasm Benchmark Results - Fri, May 30, 2025  8:15:30 PM
+# Format: compiler,iteration,build_time_ms,file_size_bytes,success
+go,1,260,1605533,true
+go,2,248,1605533,true
+go,3,230,1605533,true
+go,4,238,1605533,true
+go,5,233,1605533,true
+tinygo,1,1592,46943,true
+tinygo,2,1086,46943,true
+tinygo,3,1095,46943,true
+tinygo,4,1059,46943,true
+tinygo,5,1045,46943,true
