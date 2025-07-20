@@ -17,8 +17,8 @@ import (
 func (w *TinyWasm) VisualStudioCodeWasmEnvConfig() { // Create .vscode directory if it doesn't exist
 	vscodeDir := filepath.Join(w.rootDir, ".vscode")
 	if err := os.MkdirAll(vscodeDir, 0755); err != nil {
-		if w.Log != nil {
-			fmt.Fprintf(w.Log, "Warning: Error creating .vscode directory: %v\n", err)
+		if w.Writer != nil {
+			fmt.Fprintf(w.Writer, "Warning: Error creating .vscode directory: %v\n", err)
 		}
 		return
 	}
@@ -57,15 +57,15 @@ func (w *TinyWasm) VisualStudioCodeWasmEnvConfig() { // Create .vscode directory
 	// Write updated settings
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		if w.Log != nil {
-			fmt.Fprintf(w.Log, "Warning: Error marshaling VS Code settings: %v\n", err)
+		if w.Writer != nil {
+			fmt.Fprintf(w.Writer, "Warning: Error marshaling VS Code settings: %v\n", err)
 		}
 		return
 	}
 
 	if err := os.WriteFile(settingsPath, data, 0644); err != nil {
-		if w.Log != nil {
-			fmt.Fprintf(w.Log, "Warning: Error writing VS Code settings: %v\n", err)
+		if w.Writer != nil {
+			fmt.Fprintf(w.Writer, "Warning: Error writing VS Code settings: %v\n", err)
 		}
 		return
 	}
@@ -80,8 +80,8 @@ func (w *TinyWasm) makeDirectoryHiddenWindows(dirPath string) {
 	// This command is built into all Windows versions and doesn't require PowerShell
 	cmd := exec.Command("cmd", "/c", "attrib", "+h", dirPath)
 	if err := cmd.Run(); err != nil {
-		if w.Log != nil {
-			fmt.Fprintf(w.Log, "Warning: Could not make .vscode directory hidden on Windows: %v\n", err)
+		if w.Writer != nil {
+			fmt.Fprintf(w.Writer, "Warning: Could not make .vscode directory hidden on Windows: %v\n", err)
 		}
 		// Continue normally - this is not a critical operation for WASM development
 	}

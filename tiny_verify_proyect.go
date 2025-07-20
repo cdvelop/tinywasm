@@ -9,7 +9,7 @@ import (
 // VerifyTinyGoProjectCompatibility checks if the project is compatible with TinyGo compilation
 func (w *TinyWasm) VerifyTinyGoProjectCompatibility() {
 	// Verify tinystring library dependencies
-	fmt.Fprintln(w.Log, "=== TinyString Library TinyGo Compatibility Check ===")
+	fmt.Fprintln(w.Writer, "=== TinyString Library TinyGo Compatibility Check ===")
 
 	// Verify the library directory exists
 	libPath := "./tinystring"
@@ -48,7 +48,7 @@ func (w *TinyWasm) VerifyTinyGoProjectCompatibility() {
 		for _, imp := range problematicImports {
 			importStr := fmt.Sprintf("\"%s\"", imp)
 			if contains(content, importStr) {
-				fmt.Fprintf(w.Log, "❌ Found problematic import %s in %s\n", imp, path)
+				fmt.Fprintf(w.Writer, "❌ Found problematic import %s in %s\n", imp, path)
 				found = true
 			}
 		}
@@ -56,21 +56,21 @@ func (w *TinyWasm) VerifyTinyGoProjectCompatibility() {
 		return nil
 	})
 	if err != nil {
-		fmt.Fprintf(w.Log, "Error walking directory: %v\n", err)
+		fmt.Fprintf(w.Writer, "Error walking directory: %v\n", err)
 		return
 	}
 
 	if !found {
-		fmt.Fprintln(w.Log, "✅ No problematic standard library imports found!")
-		fmt.Fprintln(w.Log, "✅ TinyString library is TinyGo compatible!")
-		fmt.Fprintln(w.Log, "")
-		fmt.Fprintln(w.Log, "Key Features:")
-		fmt.Fprintln(w.Log, "- Zero dependency on fmt, strings, strconv packages")
-		fmt.Fprintln(w.Log, "- Manual implementations for string/number conversions")
-		fmt.Fprintln(w.Log, "- Optimized for minimal binary size")
-		fmt.Fprintln(w.Log, "- Compatible with embedded systems and WebAssembly")
+		fmt.Fprintln(w.Writer, "✅ No problematic standard library imports found!")
+		fmt.Fprintln(w.Writer, "✅ TinyString library is TinyGo compatible!")
+		fmt.Fprintln(w.Writer, "")
+		fmt.Fprintln(w.Writer, "Key Features:")
+		fmt.Fprintln(w.Writer, "- Zero dependency on fmt, strings, strconv packages")
+		fmt.Fprintln(w.Writer, "- Manual implementations for string/number conversions")
+		fmt.Fprintln(w.Writer, "- Optimized for minimal binary size")
+		fmt.Fprintln(w.Writer, "- Compatible with embedded systems and WebAssembly")
 	} else {
-		fmt.Fprintln(w.Log, "❌ TinyString library still has standard library dependencies")
+		fmt.Fprintln(w.Writer, "❌ TinyString library still has standard library dependencies")
 	}
 }
 

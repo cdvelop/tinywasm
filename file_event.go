@@ -20,7 +20,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	// Auto-detect WASM project based on file structure
 	w.wasmDetectionFunc(fileName, filePath)
 
-	fmt.Fprint(w.Log, "Wasm", extension, event, "...", filePath)
+	fmt.Fprint(w.Writer, "Wasm", extension, event, "...", filePath)
 	// Check if this file should trigger WASM compilation
 	if !w.ShouldCompileToWasm(fileName, filePath) {
 		// File should be ignored (backend file or unknown type)

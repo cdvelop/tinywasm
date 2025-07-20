@@ -18,7 +18,7 @@ func TestShouldCompileToWasm(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Log:            &outputBuffer,
+		Writer:         &outputBuffer,
 		FrontendPrefix: []string{"f.", "frontend.", "ui."},
 	}
 
@@ -109,7 +109,7 @@ func TestCompilerComparison(t *testing.T) {
 			var outputBuffer bytes.Buffer
 			config := &Config{
 				WebFilesFolder: func() (string, string) { return webDir, "public" },
-				Log:            &outputBuffer,
+				Writer:         &outputBuffer,
 				TinyGoCompiler: tc.tinyGoEnabled,
 			}
 
