@@ -79,6 +79,11 @@ func New(c *Config) *TinyWasm {
 	return w
 }
 
+// Name returns the name of the WASM project
+func (w *TinyWasm) Name() string {
+	return "TinyWasm"
+}
+
 // WasmProjectTinyGoJsUse returns dynamic state based on current configuration
 func (w *TinyWasm) WasmProjectTinyGoJsUse() (bool, bool) {
 	return w.wasmProject, w.tinyGoCompiler
