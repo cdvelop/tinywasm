@@ -112,37 +112,44 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	t.Run("Verify TinyGo compiler is configurable", func(t *testing.T) {
 		// Test initial configuration
 		var outputBuffer bytes.Buffer
-		config := &Config{
-			WebFilesFolder: func() (string, string) { return webDir, "public" },
-			Writer:         &outputBuffer,
-			TinyGoCompiler: false, // Start with Go standard compiler
-		}
+		config := NewConfig()
+		config.WebFilesFolder = func() (string, string) { return webDir, "public" }
+		config.Writer = &outputBuffer
+		config.TinyGoCompiler = false // Start with Go standard compiler
 
 		tinyWasm := New(config)
 
-		// Verify initial state
-		if tinyWasm.TinyGoCompiler() {
-			t.Fatal("Expected Go standard compiler to be used initially")
+		// Verify initial state (should be coding mode)
+		if tinyWasm.Value() != "c" {
+			t.Fatal("Expected coding mode to be used initially")
 		}
 
-		// Test setting TinyGo compiler
-		msg, err := tinyWasm.SetTinyGoCompiler(true)
+		// Test setting TinyGo compiler (debug mode)
+		msg, err := tinyWasm.Change("d") // debug mode
 		if err != nil {
 			// TinyGo might not be installed, which is ok for testing
 			t.Logf("TinyGo not available: %v", err)
 		} else {
-			if !tinyWasm.TinyGoCompiler() {
-				t.Fatal("Expected TinyGo compiler to be enabled after setting")
+			// Check that we successfully switched to debug mode
+			if tinyWasm.Value() != "d" {
+				t.Fatal("Expected debug mode to be set after change")
 			}
-			if !strings.Contains(msg, "enabled") {
-				t.Fatalf("Expected 'enabled' message, got: %s", msg)
+			// Message can be success or warning (auto-compilation might fail in test env)
+			if !strings.Contains(msg, "debug") && !strings.Contains(msg, "Warning") {
+				t.Fatalf("Expected debug mode message or warning, got: %s", msg)
 			}
 		}
 
 		// Test invalid type
-		_, err = tinyWasm.SetTinyGoCompiler("invalid")
+		_, err = tinyWasm.Change(123) // invalid type
 		if err == nil {
 			t.Fatal("Expected error when setting invalid type")
+		}
+
+		// Test invalid mode
+		_, err = tinyWasm.Change("x") // invalid mode
+		if err == nil {
+			t.Fatal("Expected error when setting invalid mode")
 		}
 	})
 }

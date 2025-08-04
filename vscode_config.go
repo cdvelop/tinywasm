@@ -58,14 +58,14 @@ func (w *TinyWasm) VisualStudioCodeWasmEnvConfig() { // Create .vscode directory
 	data, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		if w.Writer != nil {
-			fmt.Fprintf(w.Writer, "Warning: Error marshaling VS Code settings: %v\n", err)
+			fmt.Fprintf(w.Writer, "Warning: marshaling VS Code settings: %v\n", err)
 		}
 		return
 	}
 
 	if err := os.WriteFile(settingsPath, data, 0644); err != nil {
 		if w.Writer != nil {
-			fmt.Fprintf(w.Writer, "Warning: Error writing VS Code settings: %v\n", err)
+			fmt.Fprintf(w.Writer, "Warning: writing VS Code settings: %v\n", err)
 		}
 		return
 	}

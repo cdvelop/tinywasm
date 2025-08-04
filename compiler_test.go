@@ -118,7 +118,7 @@ func TestCompilerComparison(t *testing.T) {
 			// Test compiler detection
 			if tc.tinyGoEnabled {
 				// Try to enable TinyGo (might fail if not installed)
-				_, err := tinyWasm.SetTinyGoCompiler(true)
+				_, err := tinyWasm.Change("d") // debug mode
 				if err != nil {
 					t.Logf("TinyGo not available, skipping: %v", err)
 					return

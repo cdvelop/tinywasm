@@ -31,15 +31,12 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	}
 
 	// Use gobuild for compilation instead of direct exec.Command
-	if w.builder == nil {
+	if w.activeBuilder == nil {
 		return errors.New("builder not initialized")
 	}
 
-	// Update builder configuration in case compiler settings have changed
-	w.updateBuilderConfig()
-
 	// Compile using gobuild
-	if err := w.builder.CompileProgram(); err != nil {
+	if err := w.activeBuilder.CompileProgram(); err != nil {
 		return errors.New("compiling to WebAssembly error: " + err.Error())
 	}
 
@@ -53,7 +50,7 @@ func (w *TinyWasm) OutputPathMainFileWasm() string {
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
-	return w.builder.UnobservedFiles()
+	return w.activeBuilder.UnobservedFiles()
 }
 
 // updateWasmProjectDetectionActive automatically detects if this is a WASM project and configures VS Code
