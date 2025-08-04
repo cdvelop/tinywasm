@@ -56,7 +56,7 @@ func (w *TinyWasm) Change(newValue any) (string, error) {
     // Auto-recompile with appropriate message format for MessageType detection
     if err := w.recompileMainWasm(); err != nil {
         // Return warning message - MessageType will detect "Warning:" keyword
-        warningMsg := T("Warning:", D.Auto, D.Compilation, D.Failed, err.Error())
+        warningMsg := Translate("Warning:", D.Auto, D.Compilation, D.Failed, err.Error())
         return warningMsg, nil // Don't fail the mode change
     }
     
@@ -87,13 +87,13 @@ func NewConfig() *Config {
 func (w *TinyWasm) getSuccessMessage(mode string) string {
     switch mode {
     case w.Config.CodingShortcut:
-        return T(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
+        return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
     case w.Config.DebuggingShortcut:
-        return T(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"
+        return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"
     case w.Config.ProductionShortcut:
-        return T(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
+        return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
-        return T(D.Invalid, D.Mode)
+        return Translate(D.Invalid, D.Mode)
     }
 }
 
@@ -211,7 +211,7 @@ func (w *TinyWasm) Change(newValue any) (string, error) {
     // 2. Check TinyGo installation for "d"/"p" modes
     // 3. Call updateCurrentBuilder(mode)
     // 4. Auto-recompile main.wasm.go if exists
-    // 5. Return multilingual success message using TinyString T() function
+    // 5. Return multilingual success message using TinyString Translate() function
 }
 ```
 
@@ -368,13 +368,13 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
     // Import: "github.com/cdvelop/tinystring"
     switch mode {
     case w.Config.CodingShortcut:
-        return T(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
+        return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
     case w.Config.DebuggingShortcut:
-        return T(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"  
+        return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"  
     case w.Config.ProductionShortcut:
-        return T(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
+        return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
-        return T(D.Invalid, D.Mode)                  // "Invalid Mode"
+        return Translate(D.Invalid, D.Mode)                  // "Invalid Mode"
     }
 }
 ```

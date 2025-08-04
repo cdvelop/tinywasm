@@ -251,13 +251,13 @@ func (w *TinyWasm) handleTinyGoMissing() error {
 func (w *TinyWasm) getSuccessMessage(mode string) string {
 	switch mode {
 	case w.Config.CodingShortcut:
-		return T("Switching", "to", "coding", "mode")
+		return Translate("Switching", "to", "coding", "mode").String()
 	case w.Config.DebuggingShortcut:
-		return T("Switching", "to", "debugging", "mode")
+		return Translate("Switching", "to", "debugging", "mode").String()
 	case w.Config.ProductionShortcut:
-		return T("Switching", "to", "production", "mode")
+		return Translate("Switching", "to", "production", "mode").String()
 	default:
-		return T(D.Invalid, "mode")
+		return Translate(D.Invalid, "mode").String()
 	}
 }
 
@@ -286,7 +286,7 @@ func (w *TinyWasm) Change(newValue any) (string, error) {
 	// Auto-recompile with appropriate message format for MessageType detection
 	if err := w.recompileMainWasm(); err != nil {
 		// Return warning message - MessageType will detect "Warning:" keyword
-		warningMsg := T("Warning:", "auto", "compilation", "failed:", err.Error())
+		warningMsg := Translate("Warning:", "auto", "compilation", "failed:", err).String()
 		return warningMsg, nil // Don't fail the mode change
 	}
 
