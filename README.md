@@ -88,7 +88,7 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 - `VerifyTinyGoInstallation() error`
 
 **Utils:**
-- `OutputPathMainFileWasm() string`
+- `MainFilePath() string`
 - `UnobservedFiles() []string`
 - `JavascriptForInitializing() (string, error)`
 

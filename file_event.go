@@ -3,6 +3,7 @@ package tinywasm
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 )
 
@@ -43,9 +44,13 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	return nil
 }
 
-// OutputPathMainFileWasm returns the output path for the main WASM file e.g: web/public/wasm/main.wasm
-func (w *TinyWasm) OutputPathMainFileWasm() string {
-	return w.MainOutputFile()
+// MainFilePath returns the complete path to the main WASM output file
+func (w *TinyWasm) MainFilePath() string {
+	if w.activeBuilder == nil {
+		return "main.wasm" // fallback
+	}
+	rootFolder, subFolder := w.WebFilesFolder()
+	return path.Join(rootFolder, subFolder, w.activeBuilder.MainOutputFileNameWithExtension())
 }
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm

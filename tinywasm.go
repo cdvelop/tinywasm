@@ -234,31 +234,40 @@ func (w *TinyWasm) installTinyGo() error {
 
 // handleTinyGoMissing handles missing TinyGo installation
 func (w *TinyWasm) handleTinyGoMissing() error {
-	if err := w.installTinyGo(); err != nil {
-		return Err("Error:", D.Cannot, "install TinyGo:", err.Error())
-	}
-
-	// Re-verify installation
-	if err := w.VerifyTinyGoInstallation(); err != nil {
-		return err
-	}
-
-	w.tinyGoInstalled = true
-	return nil
+	// installTinyGo always returns a non-nil error (not implemented)
+	err := w.installTinyGo()
+	return Err("Error:", D.Cannot, "install TinyGo:", err.Error())
 }
 
 // getSuccessMessage returns appropriate success message for mode
 func (w *TinyWasm) getSuccessMessage(mode string) string {
+	var msg string
 	switch mode {
 	case w.Config.CodingShortcut:
-		return Translate("Switching", "to", "coding", "mode").String()
+		msg = Translate("Switching", "to", "coding", "mode").String()
 	case w.Config.DebuggingShortcut:
-		return Translate("Switching", "to", "debugging", "mode").String()
+		msg = Translate("Switching", "to", "debugging", "mode").String()
 	case w.Config.ProductionShortcut:
-		return Translate("Switching", "to", "production", "mode").String()
+		msg = Translate("Switching", "to", "production", "mode").String()
 	default:
-		return Translate(D.Invalid, "mode").String()
+		msg = Translate(D.Invalid, "mode").String()
 	}
+
+	// Fallback if Translate returns empty string
+	if msg == "" {
+		switch mode {
+		case w.Config.CodingShortcut:
+			msg = "Switching to coding mode"
+		case w.Config.DebuggingShortcut:
+			msg = "Switching to debugging mode"
+		case w.Config.ProductionShortcut:
+			msg = "Switching to production mode"
+		default:
+			msg = "Invalid mode"
+		}
+	}
+
+	return msg
 }
 
 // RENAME: SetTinyGoCompiler -> Change (implements DevTUI FieldHandler interface)
@@ -275,18 +284,27 @@ func (w *TinyWasm) Change(newValue any) (string, error) {
 
 	// Check TinyGo installation for debug/production modes
 	if w.requiresTinyGo(modeStr) && !w.tinyGoInstalled {
-		if err := w.handleTinyGoMissing(); err != nil {
-			return "", err
-		}
+		return "", w.handleTinyGoMissing()
 	}
 
 	// Update active builder
 	w.updateCurrentBuilder(modeStr)
 
+	// Check if main WASM file exists before attempting compilation
+	rootFolder, _ := w.WebFilesFolder()
+	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
+	if _, err := os.Stat(mainWasmPath); err != nil {
+		// File doesn't exist, just return success message without compilation
+		return w.getSuccessMessage(modeStr), nil
+	}
+
 	// Auto-recompile with appropriate message format for MessageType detection
 	if err := w.recompileMainWasm(); err != nil {
 		// Return warning message - MessageType will detect "Warning:" keyword
 		warningMsg := Translate("Warning:", "auto", "compilation", "failed:", err).String()
+		if warningMsg == "" {
+			warningMsg = "Warning: auto compilation failed: " + err.Error()
+		}
 		return warningMsg, nil // Don't fail the mode change
 	}
 
@@ -469,13 +487,4 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 
 	// All other files should be ignored
 	return false
-}
-
-// MainOutputFile returns the complete path to the main WASM output file
-func (w *TinyWasm) MainOutputFile() string {
-	if w.activeBuilder == nil {
-		return "main.wasm" // fallback
-	}
-	rootFolder, subFolder := w.WebFilesFolder()
-	return path.Join(rootFolder, subFolder, w.activeBuilder.MainOutputFileNameWithExtension())
 }
