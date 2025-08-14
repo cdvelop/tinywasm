@@ -18,7 +18,7 @@ func TestVSCodeConfiguration(t *testing.T) {
 		WebFilesFolder: func() (string, string) {
 			return testDir, "public"
 		},
-		Writer: &bytes.Buffer{},
+		Logger: &bytes.Buffer{},
 	}
 
 	// Create TinyWasm instance with test directory as root
@@ -108,7 +108,7 @@ func TestVSCodeConfigurationFunctionSwitch(t *testing.T) {
 		WebFilesFolder: func() (string, string) {
 			return testDir, "public"
 		},
-		Writer: &bytes.Buffer{},
+		Logger: &bytes.Buffer{},
 	}
 	// Create TinyWasm instance
 	tinyWasm := New(config)
@@ -150,7 +150,7 @@ func TestMakeDirectoryHiddenWindows(t *testing.T) {
 		WebFilesFolder: func() (string, string) {
 			return testDir, "public"
 		},
-		Writer: &bytes.Buffer{},
+		Logger: &bytes.Buffer{},
 	}
 	tinyWasm := New(config)
 

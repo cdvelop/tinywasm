@@ -45,7 +45,7 @@ type TinyWasm struct {
 type Config struct {
 	// WebFilesFolder returns root web folder and subfolder eg: "web","public"
 	WebFilesFolder func() (string, string)
-	Writer         io.Writer // For logging output to external systems (e.g., TUI, console)
+	Logger         io.Writer // For logging output to external systems (e.g., TUI, console)
 	FrontendPrefix []string  // Prefixes used to identify frontend files (e.g., "f.", "front.")
 	TinyGoCompiler bool      // Enable TinyGo compiler (default: false for faster development)
 
@@ -125,7 +125,7 @@ func (w *TinyWasm) initializeBuilder() {
 		OutName:      "main", // Output will be main.wasm
 		Extension:    ".wasm",
 		OutFolder:    outFolder,
-		Writer:       w.Writer,
+		Logger:       w.Logger,
 		Timeout:      60 * time.Second, // 1 minute for all modes
 		Callback:     w.Callback,
 	}
@@ -367,8 +367,8 @@ func (w *TinyWasm) recompileMainWasm() error {
 func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 	if err := w.VerifyTinyGoInstallation(); err != nil {
 		w.tinyGoInstalled = false
-		if w.Writer != nil {
-			fmt.Fprintf(w.Writer, "Warning: TinyGo not available: %v\n", err)
+		if w.Logger != nil {
+			fmt.Fprintf(w.Logger, "Warning: TinyGo not available: %v\n", err)
 		}
 	} else {
 		w.tinyGoInstalled = true
@@ -377,13 +377,13 @@ func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 		version, err := w.GetTinyGoVersion()
 		if err != nil {
 			w.tinyGoInstalled = false
-			if w.Writer != nil {
-				fmt.Fprintf(w.Writer, "Warning: TinyGo version check failed: %v\n", err)
+			if w.Logger != nil {
+				fmt.Fprintf(w.Logger, "Warning: TinyGo version check failed: %v\n", err)
 			}
 		} else {
 			w.tinyGoInstalled = true
-			if w.Writer != nil {
-				fmt.Fprintf(w.Writer, "Info: TinyGo installation verified %v  \n", version)
+			if w.Logger != nil {
+				fmt.Fprintf(w.Logger, "Info: TinyGo installation verified %v  \n", version)
 			}
 		}
 	}

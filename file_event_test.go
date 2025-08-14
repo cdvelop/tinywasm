@@ -27,7 +27,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Writer:         &outputBuffer,
+		Logger:         &outputBuffer,
 	}
 
 	tinyWasm := New(config)
@@ -114,7 +114,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		var outputBuffer bytes.Buffer
 		config := NewConfig()
 		config.WebFilesFolder = func() (string, string) { return webDir, "public" }
-		config.Writer = &outputBuffer
+		config.Logger = &outputBuffer
 		config.TinyGoCompiler = false // Start with Go standard compiler
 
 		tinyWasm := New(config)
@@ -159,7 +159,7 @@ func TestUnobservedFiles(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	config := &Config{
 		WebFilesFolder: func() (string, string) { return "web", "public" },
-		Writer:         &outputBuffer,
+		Logger:         &outputBuffer,
 	}
 
 	tinyWasm := New(config)
@@ -199,7 +199,7 @@ func TestFrontendPrefixConfiguration(t *testing.T) {
 	// Test with custom frontend prefixes
 	config := &Config{
 		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Writer:         &outputBuffer,
+		Logger:         &outputBuffer,
 		FrontendPrefix: []string{"client.", "view.", "component."},
 	}
 
