@@ -335,16 +335,6 @@ func (w *TinyWasm) Value() string {
 	return w.Config.CodingShortcut
 }
 
-// Editable returns true indicating this field can be modified by the user
-func (w *TinyWasm) Editable() bool {
-	return true
-}
-
-// Timeout returns no timeout (zero duration) for mode changes
-func (w *TinyWasm) Timeout() time.Duration {
-	return 0 // No timeout needed
-}
-
 // recompileMainWasm recompiles the main WASM file if it exists
 func (w *TinyWasm) recompileMainWasm() error {
 	if w.activeBuilder == nil {

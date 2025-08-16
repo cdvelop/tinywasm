@@ -4,4 +4,4 @@ go 1.22.0
 
 require github.com/cdvelop/gobuild v0.0.6
 
-require github.com/cdvelop/tinystring v0.1.59
+require github.com/cdvelop/tinystring v0.1.60
