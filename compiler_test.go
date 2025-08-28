@@ -17,9 +17,10 @@ func TestShouldCompileToWasm(t *testing.T) {
 	modulesDir := filepath.Join(webDir, "modules")
 	var outputBuffer bytes.Buffer
 	config := &Config{
-		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Logger:         &outputBuffer,
-		FrontendPrefix: []string{"f.", "frontend.", "ui."},
+		WebFilesRootRelative: webDir,
+		WebFilesSubRelative:  "public",
+		Logger:               &outputBuffer,
+		FrontendPrefix:       []string{"f.", "frontend.", "ui."},
 	}
 
 	tinyWasm := New(config)
@@ -108,9 +109,10 @@ func TestCompilerComparison(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var outputBuffer bytes.Buffer
 			config := &Config{
-				WebFilesFolder: func() (string, string) { return webDir, "public" },
-				Logger:         &outputBuffer,
-				TinyGoCompiler: tc.tinyGoEnabled,
+				WebFilesRootRelative: webDir,
+				WebFilesSubRelative:  "public",
+				Logger:               &outputBuffer,
+				TinyGoCompiler:       tc.tinyGoEnabled,
 			}
 
 			tinyWasm := New(config)

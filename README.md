@@ -16,10 +16,11 @@ Go package for intelligent WebAssembly compilation with automatic file detection
 ```go
 // Basic usage
 config := tinywasm.NewConfig() // Pre-configured with defaults
-config.WebFilesFolder = func() (string, string) { return "web", "public" }
+config.WebFilesRootRelative = "web"
+config.WebFilesSubRelative = "public"
 
 tw := tinywasm.New(config)
-tw.NewFileEvent("main.wasm.go", ".go", "web/main.wasm.go", "write")
+tw.NewFileEvent("web/main.wasm.go", ".go", "web/main.wasm.go", "write")
 
 // DevTUI Integration - 3 Mode System
 fmt.Println("Current mode:", tw.Value())    // "c" (coding)
@@ -28,7 +29,8 @@ fmt.Println("Status:", msg)                 // "Switching to debugging mode"
 
 // Advanced configuration
 config := &tinywasm.Config{
-    WebFilesFolder:      func() (string, string) { return "web", "public" },
+    WebFilesRootRelative: "web",
+    WebFilesSubRelative:  "public",
     FrontendPrefix:      []string{"f.", "ui.", "view."},
     CodingShortcut:      "c",  // Customizable shortcuts
     DebuggingShortcut:   "d",
@@ -36,10 +38,6 @@ config := &tinywasm.Config{
 }
 ```
 
-## File Detection
-
-**Compiles:** `*.wasm.go`, frontend prefixes (`f.*.go`), modules/*/
-**Ignores:** Backend prefixes (`b.*.go`), root `main.go`, non-Go files
 
 ## DevTUI FieldHandler Interface
 
@@ -97,7 +95,8 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 ```go
 type Config struct {
     // Core settings
-    WebFilesFolder func() (string, string) // web dir, public dir
+    WebFilesRootRelative string // web dir (relative)
+    WebFilesSubRelative  string // public dir (relative)
     FrontendPrefix []string                // frontend prefixes
     Writer io.Writer                       // compilation output (renamed from Log)
     
@@ -110,6 +109,11 @@ type Config struct {
     TinyGoCompiler     bool               // deprecated, use mode system
     Callback           func(string, error) // optional callback
     CompilingArguments func() []string     // compiler args
+        WebFilesFolder func() (string, string) // web dir, public dir
+        WebFilesRootRelative string // web dir, public dir
+        WebFilesSubRelative  string // public dir
+        WebFilesRootRelative string // web dir, public dir
+        WebFilesSubRelative  string // public dir
 }
 
 // Pre-configured constructor (recommended)

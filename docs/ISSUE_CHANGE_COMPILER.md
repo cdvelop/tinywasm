@@ -250,7 +250,8 @@ func (w *TinyWasm) installTinyGo() error {
 #### Updated initializeBuilder Method
 ```go
 func (w *TinyWasm) initializeBuilder() {
-    rootFolder, subFolder := w.WebFilesFolder()
+    rootFolder := w.Config.WebFilesRootRelative
+    subFolder := w.Config.WebFilesSubRelative
     mainFilePath := path.Join(rootFolder, w.mainInputFile)
     outFolder := path.Join(rootFolder, subFolder)
 

@@ -8,7 +8,8 @@ import (
 func TestTinyStringMessages(t *testing.T) {
 	t.Run("Test success messages with TinyString", func(t *testing.T) {
 		config := NewConfig()
-		config.WebFilesFolder = func() (string, string) { return "test", "public" }
+		config.WebFilesRootRelative = "test"
+		config.WebFilesSubRelative = "public"
 		tw := New(config)
 
 		// Test each mode message
@@ -39,7 +40,8 @@ func TestTinyStringMessages(t *testing.T) {
 
 	t.Run("Test error messages with TinyString", func(t *testing.T) {
 		config := NewConfig()
-		config.WebFilesFolder = func() (string, string) { return "test", "public" }
+		config.WebFilesRootRelative = "test"
+		config.WebFilesSubRelative = "public"
 		tw := New(config)
 
 		// Test validation error
@@ -56,7 +58,8 @@ func TestTinyStringMessages(t *testing.T) {
 
 	t.Run("Test Change method with TinyString messages", func(t *testing.T) {
 		config := NewConfig()
-		config.WebFilesFolder = func() (string, string) { return "test", "public" }
+		config.WebFilesRootRelative = "test"
+		config.WebFilesSubRelative = "public"
 		tw := New(config)
 
 		// Test valid mode change

@@ -9,10 +9,9 @@ import (
 )
 
 func TestTinyWasmNewFileEvent(t *testing.T) {
-	// Setup test environment
-	rootDir := "test"
+	// Setup test environment with an isolated temporary directory
+	rootDir := t.TempDir()
 	webDir := filepath.Join(rootDir, "wasmTest")
-	defer os.RemoveAll(webDir)
 
 	publicDir := filepath.Join(webDir, "public")
 	modulesDir := filepath.Join(webDir, "modules")
@@ -26,8 +25,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	// Configure TinyWasm handler with a buffer for testing output
 	var outputBuffer bytes.Buffer
 	config := &Config{
-		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Logger:         &outputBuffer,
+		WebFilesRootRelative: webDir,
+		WebFilesSubRelative:  "public",
+		Logger:               &outputBuffer,
 	}
 
 	tinyWasm := New(config)
@@ -113,7 +113,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		// Test initial configuration
 		var outputBuffer bytes.Buffer
 		config := NewConfig()
-		config.WebFilesFolder = func() (string, string) { return webDir, "public" }
+		config.WebFilesRootRelative = webDir
+		config.WebFilesSubRelative = "public"
 		config.Logger = &outputBuffer
 		config.TinyGoCompiler = false // Start with Go standard compiler
 
@@ -158,8 +159,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 func TestUnobservedFiles(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	config := &Config{
-		WebFilesFolder: func() (string, string) { return "web", "public" },
-		Logger:         &outputBuffer,
+		WebFilesRootRelative: "web",
+		WebFilesSubRelative:  "public",
+		Logger:               &outputBuffer,
 	}
 
 	tinyWasm := New(config)
@@ -188,19 +190,19 @@ func TestUnobservedFiles(t *testing.T) {
 
 // Test frontend prefix configuration
 func TestFrontendPrefixConfiguration(t *testing.T) {
-	// Setup test environment
-	rootDir := "test"
+	// Setup test environment with an isolated temporary directory
+	rootDir := t.TempDir()
 	webDir := filepath.Join(rootDir, "wasmTest2")
-	defer os.RemoveAll(webDir)
 
 	modulesDir := filepath.Join(webDir, "modules")
 
 	var outputBuffer bytes.Buffer
 	// Test with custom frontend prefixes
 	config := &Config{
-		WebFilesFolder: func() (string, string) { return webDir, "public" },
-		Logger:         &outputBuffer,
-		FrontendPrefix: []string{"client.", "view.", "component."},
+		WebFilesRootRelative: webDir,
+		WebFilesSubRelative:  "public",
+		Logger:               &outputBuffer,
+		FrontendPrefix:       []string{"client.", "view.", "component."},
 	}
 
 	tinyWasm := New(config)
