@@ -19,7 +19,6 @@ import (
 // TinyWasm provides WebAssembly compilation capabilities with 3-mode compiler selection
 type TinyWasm struct {
 	*Config
-	ModulesFolder string // default "modules". for test change eg: "test/modules"
 	mainInputFile string // eg: main.wasm.go
 
 	// RENAME & ADD: 4 builders for complete mode coverage
@@ -48,7 +47,6 @@ type Config struct {
 	WebFilesRootRelative string    // root web folder (relative)
 	WebFilesSubRelative  string    // subfolder under root (relative)
 	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
-	FrontendPrefix       []string  // Prefixes used to identify frontend files (e.g., "f.", "front.")
 	TinyGoCompiler       bool      // Enable TinyGo compiler (default: false for faster development)
 
 	// NEW: Shortcut configuration (default: "c", "d", "p")
@@ -68,17 +66,15 @@ func NewConfig() *Config {
 		DebuggingShortcut:  "d",
 		ProductionShortcut: "p",
 		TinyGoCompiler:     false, // Default to fast Go compilation
-		FrontendPrefix:     []string{"f.", "front."},
 	}
 }
 
 // New creates a new TinyWasm instance with the provided configuration
 // Timeout is set to 40 seconds maximum as TinyGo compilation can be slow
-// Default values: ModulesFolder="modules", mainInputFile="main.wasm.go"
+// Default values: mainInputFile="main.wasm.go"
 func New(c *Config) *TinyWasm {
 	w := &TinyWasm{
 		Config:        c,
-		ModulesFolder: "modules",
 		mainInputFile: "main.wasm.go",
 		rootDir:       ".", // Default root directory
 
@@ -410,21 +406,7 @@ func (w *TinyWasm) getWasmExecJsPathGo() (string, error) {
 	return filepath.Join(GoDir, "misc", "wasm", "wasm_exec.js"), nil
 }
 
-// IsFrontendFile checks if a file should trigger WASM compilation based on frontend prefixes
-func (w *TinyWasm) IsFrontendFile(filename string) bool {
-	if len(filename) < 3 {
-		return false
-	}
-
-	// Check frontend prefixes
-	for _, prefix := range w.FrontendPrefix {
-		if strings.HasPrefix(filename, prefix) {
-			return true
-		}
-	}
-
-	return false
-}
+// (Deprecated field FrontendPrefix removed) frontend detection is no longer supported.
 
 // ShouldCompileToWasm determines if a file should trigger WASM compilation
 func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
@@ -433,47 +415,8 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 		return true
 	}
 
-	// Always compile .wasm.go files in modules
+	// Any .wasm.go file should trigger compilation
 	if strings.HasSuffix(fileName, ".wasm.go") {
-		return true
-	}
-
-	// Check if it's a frontend file by prefix (only if configured)
-	if len(w.FrontendPrefix) > 0 {
-		for _, prefix := range w.FrontendPrefix {
-			if strings.HasPrefix(fileName, prefix) {
-				return true
-			}
-		}
-	}
-
-	// Go files in modules: check for unknown prefixes with dot
-	if strings.HasSuffix(fileName, ".go") && (strings.Contains(filePath, "/modules/") || strings.Contains(filePath, "\\modules\\")) {
-		// If file has a prefix with dot (prefix.name.go) and it's not in our known frontend prefixes,
-		// assume it's a backend file and don't compile
-		if strings.Contains(fileName, ".") {
-			// Extract potential prefix (everything before first dot + dot)
-			parts := strings.Split(fileName, ".")
-			if len(parts) >= 3 { // prefix.name.go = 3 parts minimum
-				potentialPrefix := parts[0] + "."
-
-				// Check if this prefix is in our known frontend prefixes
-				isKnownFrontend := false
-				for _, prefix := range w.FrontendPrefix {
-					if potentialPrefix == prefix {
-						isKnownFrontend = true
-						break
-					}
-				}
-
-				// If it has a prefix with dot but it's not a known frontend prefix, don't compile
-				if !isKnownFrontend {
-					return false
-				}
-			}
-		}
-
-		// Regular Go files in modules without prefixes should compile
 		return true
 	}
 

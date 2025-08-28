@@ -10,7 +10,7 @@ import (
 // NewFileEvent handles file events for WASM compilation with automatic project detection
 // fileName: name of the file (e.g., main.wasm.go)
 // extension: file extension (e.g., .go)
-// filePath: full path to the file (e.g., web/public/wasm/main.wasm.go, modules/users/wasm/users.wasm.go, modules/auth/f.logout.go)
+// filePath: full path to the file (e.g., web/public/wasm/main.wasm.go)
 // event: type of file event (e.g., create, remove, write, rename)
 func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) error {
 	const e = "NewFileEvent Wasm"
@@ -76,13 +76,7 @@ func (w *TinyWasm) updateWasmProjectDetectionActive(fileName, filePath string) {
 		}
 	}
 
-	// Check for frontend files in modules directory
-	if w.IsFrontendFile(fileName) && (strings.Contains(filePath, "/modules/") || strings.Contains(filePath, "\\modules\\")) {
-		if !w.wasmProject {
-			w.wasmProject = true
-			wasmDetected = true
-		}
-	}
+	// Note: frontend prefix detection was removed; rely on main.wasm.go and .wasm.go files
 	// If WASM project detected, configure VS Code and switch to inactive function
 	if wasmDetected {
 		w.VisualStudioCodeWasmEnvConfig()

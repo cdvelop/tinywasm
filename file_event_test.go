@@ -14,9 +14,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	webDir := filepath.Join(rootDir, "wasmTest")
 
 	publicDir := filepath.Join(webDir, "public")
-	modulesDir := filepath.Join(webDir, "modules")
 	// Create directories
-	for _, dir := range []string{webDir, publicDir, modulesDir} {
+	for _, dir := range []string{webDir, publicDir} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatalf("Error creating test directory: %v", err)
 		}
@@ -31,7 +30,6 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	}
 
 	tinyWasm := New(config)
-	tinyWasm.ModulesFolder = filepath.Join(webDir, "modules") // override for testing
 	t.Run("Verify main.wasm.go compilation", func(t *testing.T) {
 		mainWasmPath := filepath.Join(webDir, "main.wasm.go") // main.wasm.go in web root
 		defer os.Remove(mainWasmPath)
@@ -56,11 +54,6 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 	})
 	t.Run("Verify module wasm compilation now goes to main.wasm", func(t *testing.T) {
-		moduleName := "users"
-		moduleDir := filepath.Join(modulesDir, moduleName, "wasm")
-		if err := os.MkdirAll(moduleDir, 0755); err != nil {
-			t.Fatal(err)
-		}
 		// Create main.wasm.go in the web root first
 		mainWasmPath := filepath.Join(webDir, "main.wasm.go") // main.wasm.go in web root
 		mainContent := `package main
@@ -70,7 +63,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}`
 		os.WriteFile(mainWasmPath, []byte(mainContent), 0644)
 
-		moduleWasmPath := filepath.Join(moduleDir, "users.wasm.go")
+		// Create another .wasm.go file in webDir to simulate additional WASM entry
+		moduleWasmPath := filepath.Join(webDir, "users.wasm.go")
 		content := `package main
 
 		func main() {
@@ -88,10 +82,10 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}
-		// Verify individual module wasm files are NOT created anymore (no wasm subdirectory)
-		oldOutputPath := filepath.Join(publicDir, "users.wasm")
-		if _, err := os.Stat(oldOutputPath); !os.IsNotExist(err) {
-			t.Fatal("Individual module wasm file should not be created in new single compilation mode")
+		// Individual per-module wasm outputs are deprecated; ensure main output exists
+		oldOutputPath := tinyWasm.MainFileRelativePath()
+		if _, err := os.Stat(oldOutputPath); os.IsNotExist(err) {
+			t.Fatal("main.wasm file was not created")
 		}
 	})
 
@@ -190,43 +184,5 @@ func TestUnobservedFiles(t *testing.T) {
 
 // Test frontend prefix configuration
 func TestFrontendPrefixConfiguration(t *testing.T) {
-	// Setup test environment with an isolated temporary directory
-	rootDir := t.TempDir()
-	webDir := filepath.Join(rootDir, "wasmTest2")
-
-	modulesDir := filepath.Join(webDir, "modules")
-
-	var outputBuffer bytes.Buffer
-	// Test with custom frontend prefixes
-	config := &Config{
-		WebFilesRootRelative: webDir,
-		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
-		FrontendPrefix:       []string{"client.", "view.", "component."},
-	}
-
-	tinyWasm := New(config)
-	tinyWasm.ModulesFolder = modulesDir // Set modules folder for testing
-
-	testCases := []struct {
-		fileName string
-		filePath string
-		expected bool
-	}{
-		{"client.auth.go", filepath.Join(modulesDir, "auth", "client.auth.go"), true},
-		{"view.dashboard.go", filepath.Join(modulesDir, "admin", "view.dashboard.go"), true},
-		{"component.header.go", filepath.Join(modulesDir, "ui", "component.header.go"), true},
-		{"server.auth.go", filepath.Join(modulesDir, "auth", "server.auth.go"), false}, // Unknown prefix "server." - not in frontend list
-		{"model.user.go", filepath.Join(modulesDir, "users", "model.user.go"), false},  // Unknown prefix "model." - not in frontend list
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.fileName, func(t *testing.T) {
-			result := tinyWasm.ShouldCompileToWasm(tc.fileName, tc.filePath)
-			if result != tc.expected {
-				t.Errorf("ShouldCompileToWasm(%q, %q) = %v, want %v",
-					tc.fileName, tc.filePath, result, tc.expected)
-			}
-		})
-	}
+	// Frontend prefix configuration support has been removed.
 }
