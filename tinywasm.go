@@ -32,6 +32,9 @@ type TinyWasm struct {
 	wasmProject     bool // Automatically detected based on file structure
 	tinyGoInstalled bool // Cached TinyGo installation status
 
+	// NEW: Explicit mode tracking to fix Value() method
+	currentMode string // Track current mode explicitly ("c", "d", "p")
+
 	goWasmJsCache     string
 	tinyGoWasmJsCache string
 
@@ -80,6 +83,9 @@ func New(c *Config) *TinyWasm {
 		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
 		wasmProject:     false,            // Auto-detected later
 		tinyGoInstalled: false,            // Verified on first use
+
+		// Initialize with default mode
+		currentMode: c.CodingShortcut, // Start with coding mode
 	}
 
 	// Initialize WASM detection function pointer (starts active)
@@ -113,12 +119,12 @@ func (w *TinyWasm) TinyGoCompiler() bool {
 func (w *TinyWasm) initializeBuilder() {
 	rootFolder := w.Config.WebFilesRootRelative
 	subFolder := w.Config.WebFilesSubRelative
-	mainFilePath := path.Join(rootFolder, w.mainInputFile)
+	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
 	outFolder := path.Join(rootFolder, subFolder)
 
 	// Base configuration shared by all builders
 	baseConfig := gobuild.Config{
-		MainInputFileRelativePath: mainFilePath,
+		MainInputFileRelativePath: mainInputFileRelativePath,
 		OutName:                   "main", // Output will be main.wasm
 		Extension:                 ".wasm",
 		OutFolderRelativePath:     outFolder,
@@ -200,6 +206,9 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 	default:
 		w.activeBuilder = w.builderCoding // fallback to coding mode
 	}
+
+	// 3. Update current mode tracking
+	w.currentMode = mode
 }
 
 // validateMode validates if the provided mode is supported
@@ -329,19 +338,11 @@ func (w *TinyWasm) Label() string {
 
 // Value returns the current compiler mode shortcut (c, d, or p)
 func (w *TinyWasm) Value() string {
-	// Determine current mode based on activeBuilder
-	if w.activeBuilder == w.builderCoding {
-		return w.Config.CodingShortcut
+	// Use explicit mode tracking instead of pointer comparison
+	if w.currentMode == "" {
+		return w.Config.CodingShortcut // Default to coding mode
 	}
-	if w.activeBuilder == w.builderDebug {
-		return w.Config.DebuggingShortcut
-	}
-	if w.activeBuilder == w.builderProduction {
-		return w.Config.ProductionShortcut
-	}
-
-	// Default to coding mode if no active builder
-	return w.Config.CodingShortcut
+	return w.currentMode
 }
 
 // recompileMainWasm recompiles the main WASM file if it exists

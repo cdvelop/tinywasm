@@ -252,12 +252,12 @@ func (w *TinyWasm) installTinyGo() error {
 func (w *TinyWasm) initializeBuilder() {
     rootFolder := w.Config.WebFilesRootRelative
     subFolder := w.Config.WebFilesSubRelative
-    mainFilePath := path.Join(rootFolder, w.mainInputFile)
+    mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
     outFolder := path.Join(rootFolder, subFolder)
 
     // Base configuration shared by all builders
     baseConfig := gobuild.Config{
-        MainInputFileRelativePath: mainFilePath,
+        MainInputFileRelativePath: mainInputFileRelativePath,
         OutName:      "main",
         Extension:    ".wasm", 
         OutFolderRelativePath:    outFolder,
