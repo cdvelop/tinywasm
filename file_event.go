@@ -44,11 +44,8 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	return nil
 }
 
-// MainFilePath returns the complete path to the main WASM output file
-func (w *TinyWasm) MainFilePath() string {
-	if w.activeBuilder == nil {
-		return "main.wasm" // fallback
-	}
+// MainFileRelativePath returns the complete path to the main WASM output file
+func (w *TinyWasm) MainFileRelativePath() string {
 	rootFolder, subFolder := w.WebFilesFolder()
 	return path.Join(rootFolder, subFolder, w.activeBuilder.MainOutputFileNameWithExtension())
 }

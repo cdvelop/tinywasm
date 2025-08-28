@@ -50,7 +50,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 
 		// Verify wasm file was created
-		outputPath := tinyWasm.MainFilePath()
+		outputPath := tinyWasm.MainFileRelativePath()
 		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}
@@ -84,7 +84,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 
 		// Verify main.wasm file was created (single output)
-		outputPath := tinyWasm.MainFilePath()
+		outputPath := tinyWasm.MainFileRelativePath()
 		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}

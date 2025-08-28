@@ -256,10 +256,10 @@ func (w *TinyWasm) initializeBuilder() {
 
     // Base configuration shared by all builders
     baseConfig := gobuild.Config{
-        MainFilePath: mainFilePath,
+        MainFileRelativePath: mainFilePath,
         OutName:      "main",
         Extension:    ".wasm", 
-        OutFolder:    outFolder,
+        OutFolderRelativePath:    outFolder,
         Writer:       w.Writer,
         Timeout:      60 * time.Second, // 1 minute for all modes
         Callback:     w.Callback,
