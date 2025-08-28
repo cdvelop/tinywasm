@@ -31,7 +31,6 @@ fmt.Println("Status:", msg)                 // "Switching to debugging mode"
 config := &tinywasm.Config{
     WebFilesRootRelative: "web",
     WebFilesSubRelative:  "public",
-    FrontendPrefix:      []string{"f.", "ui.", "view."},
     CodingShortcut:      "c",  // Customizable shortcuts
     DebuggingShortcut:   "d",
     ProductionShortcut:  "p",
@@ -86,7 +85,7 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 - `VerifyTinyGoInstallation() error`
 
 **Utils:**
-- `MainFileRelativePath() string`
+- `MainInputFileRelativePath() string`
 - `UnobservedFiles() []string`
 - `JavascriptForInitializing() (string, error)`
 
@@ -94,38 +93,28 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 ```go
 type Config struct {
-    // Core settings
-    WebFilesRootRelative string // web dir (relative)
-    WebFilesSubRelative  string // public dir (relative)
-    FrontendPrefix []string                // frontend prefixes
-    Writer io.Writer                       // compilation output (renamed from Log)
-    
-    // 3-Mode System (NEW)
-    CodingShortcut     string             // default: "c"
-    DebuggingShortcut  string             // default: "d" 
-    ProductionShortcut string             // default: "p"
-    
-    // Legacy/Advanced
-    TinyGoCompiler     bool               // deprecated, use mode system
-    Callback           func(string, error) // optional callback
-    CompilingArguments func() []string     // compiler args
-        WebFilesFolder func() (string, string) // web dir, public dir
-        WebFilesRootRelative string // web dir, public dir
-        WebFilesSubRelative  string // public dir
-        WebFilesRootRelative string // web dir, public dir
-        WebFilesSubRelative  string // public dir
+	WebFilesRootRelative string    // root web folder (relative) eg: "web"
+	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
+	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
+	TinyGoCompiler       bool      // Enable TinyGo compiler (default: false for faster development)
+
+	// NEW: Shortcut configuration (default: "c", "d", "p")
+	CodingShortcut     string // coding "c" compile fast with go
+	DebuggingShortcut  string // debugging "d" compile with tinygo debug
+	ProductionShortcut string // production "p" compile with tinygo minimal binary size
+
+	// gobuild integration fields
+	Callback           func(error)     // Optional callback for async compilation
+	CompilingArguments func() []string // Build arguments for compilation (e.g., ldflags)
+
 }
 
 // Pre-configured constructor (recommended)
 func NewConfig() *Config
 ```
 
-**Migration from v1:**
+## Mode Switching
 ```go
-// Old way (deprecated)
-config.TinyGoCompiler = true
-
-// New way (recommended)  
 tw.Change("p")  // production mode with TinyGo -opt=z
 tw.Change("d")  // debug mode with TinyGo -opt=1
 tw.Change("c")  // coding mode with Go standard
@@ -148,7 +137,7 @@ tw.Change("c")  // coding mode with Go standard
 | `TinyGoCompiler()` | `Value() == "p" \|\| Value() == "d"` | Check if using TinyGo |
 | `config.Log` | `config.Writer` | Field renamed |
 
-**Benefits of v2.x:**
+**Benefits:**
 - 🎯 **3 optimized modes** instead of binary choice
 - 🔧 **DevTUI integration** for interactive development  
 - 📦 **Smaller debug builds** with TinyGo -opt=1

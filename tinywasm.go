@@ -42,10 +42,8 @@ type TinyWasm struct {
 
 // Config holds configuration for WASM compilation
 type Config struct {
-	// WebFilesRootRelative and WebFilesSubRelative are relative paths
-	// Example: WebFilesRootRelative: "web", WebFilesSubRelative: "public"
-	WebFilesRootRelative string    // root web folder (relative)
-	WebFilesSubRelative  string    // subfolder under root (relative)
+	WebFilesRootRelative string    // root web folder (relative) eg: "web"
+	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
 	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
 	TinyGoCompiler       bool      // Enable TinyGo compiler (default: false for faster development)
 
@@ -120,13 +118,13 @@ func (w *TinyWasm) initializeBuilder() {
 
 	// Base configuration shared by all builders
 	baseConfig := gobuild.Config{
-		MainFileRelativePath:  mainFilePath,
-		OutName:               "main", // Output will be main.wasm
-		Extension:             ".wasm",
-		OutFolderRelativePath: outFolder,
-		Logger:                w.Logger,
-		Timeout:               60 * time.Second, // 1 minute for all modes
-		Callback:              w.Callback,
+		MainInputFileRelativePath: mainFilePath,
+		OutName:                   "main", // Output will be main.wasm
+		Extension:                 ".wasm",
+		OutFolderRelativePath:     outFolder,
+		Logger:                    w.Logger,
+		Timeout:                   60 * time.Second, // 1 minute for all modes
+		Callback:                  w.Callback,
 	}
 
 	// Configure Coding builder (Go standard)
@@ -269,45 +267,57 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 	return msg
 }
 
-// RENAME: SetTinyGoCompiler -> Change (implements DevTUI FieldHandler interface)
-func (w *TinyWasm) Change(newValue any) (string, error) {
-	modeStr, ok := newValue.(string)
-	if !ok {
-		return "", Err(D.Invalid, "input", D.Type)
-	}
-
+// Change updates the compiler mode for TinyWasm and reports progress via the provided callback.
+// Implements the HandlerEdit interface: Change(newValue string, progress func(msgs ...any))
+func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	// Validate mode
-	if err := w.validateMode(modeStr); err != nil {
-		return "", err
+	if err := w.validateMode(newValue); err != nil {
+		if progress != nil {
+			progress(err.Error())
+		}
+		return
 	}
 
 	// Check TinyGo installation for debug/production modes
-	if w.requiresTinyGo(modeStr) && !w.tinyGoInstalled {
-		return "", w.handleTinyGoMissing()
+	if w.requiresTinyGo(newValue) && !w.tinyGoInstalled {
+		if progress != nil {
+			// handleTinyGoMissing returns an error with descriptive message
+			progress(w.handleTinyGoMissing().Error())
+		}
+		return
 	}
 
 	// Update active builder
-	w.updateCurrentBuilder(modeStr)
+	w.updateCurrentBuilder(newValue)
 
 	// Check if main WASM file exists before attempting compilation
 	rootFolder := w.Config.WebFilesRootRelative
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
 	if _, err := os.Stat(mainWasmPath); err != nil {
-		// File doesn't exist, just return success message without compilation
-		return w.getSuccessMessage(modeStr), nil
+		// File doesn't exist, just report success message without compilation
+		if progress != nil {
+			progress(w.getSuccessMessage(newValue))
+		}
+		return
 	}
 
 	// Auto-recompile with appropriate message format for MessageType detection
 	if err := w.recompileMainWasm(); err != nil {
-		// Return warning message - MessageType will detect "Warning:" keyword
+		// Report warning message via progress (don't treat as fatal)
 		warningMsg := Translate("Warning:", "auto", "compilation", "failed:", err).String()
 		if warningMsg == "" {
 			warningMsg = "Warning: auto compilation failed: " + err.Error()
 		}
-		return warningMsg, nil // Don't fail the mode change
+		if progress != nil {
+			progress(warningMsg)
+		}
+		return
 	}
 
-	return w.getSuccessMessage(modeStr), nil
+	// Report success
+	if progress != nil {
+		progress(w.getSuccessMessage(newValue))
+	}
 }
 
 // === DevTUI FieldHandler Interface Implementation ===

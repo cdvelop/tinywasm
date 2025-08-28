@@ -2,8 +2,10 @@ package tinywasm
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -107,10 +109,16 @@ func TestCompilerComparison(t *testing.T) {
 
 			// Test compiler detection
 			if tc.tinyGoEnabled {
-				// Try to enable TinyGo (might fail if not installed)
-				_, err := tinyWasm.Change("d") // debug mode
-				if err != nil {
-					t.Logf("TinyGo not available, skipping: %v", err)
+				// Try to enable TinyGo (might fail if not installed). Use progress callback to capture messages.
+				var msg string
+				tinyWasm.Change("d", func(msgs ...any) {
+					if len(msgs) > 0 {
+						msg = fmt.Sprint(msgs...)
+					}
+				})
+				// If TinyGo isn't available, the progress callback likely contains an error message.
+				if strings.Contains(strings.ToLower(msg), "cannot") || strings.Contains(strings.ToLower(msg), "not available") {
+					t.Logf("TinyGo not available, skipping: %s", msg)
 					return
 				}
 			}

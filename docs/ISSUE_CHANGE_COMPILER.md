@@ -257,7 +257,7 @@ func (w *TinyWasm) initializeBuilder() {
 
     // Base configuration shared by all builders
     baseConfig := gobuild.Config{
-        MainFileRelativePath: mainFilePath,
+        MainInputFileRelativePath: mainFilePath,
         OutName:      "main",
         Extension:    ".wasm", 
         OutFolderRelativePath:    outFolder,
