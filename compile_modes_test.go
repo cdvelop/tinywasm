@@ -46,34 +46,62 @@ func main() {
 	w := New(cfg)
 
 	// Debug: Check initial state
-	t.Logf("After New() - Initial mode: %s, shortcuts: c=%s, d=%s, p=%s",
-		w.Value(), w.Config.CodingShortcut, w.Config.DebuggingShortcut, w.Config.ProductionShortcut)
+	if w.Value() != w.Config.CodingShortcut {
+		t.Fatalf("Initial mode should be '%s', got '%s'", w.Config.CodingShortcut, w.Value())
+	}
 
 	// Check tinygo availability
 	_, err := exec.LookPath("tinygo")
 	tinygoPresent := err == nil
 
 	// Step 1: Simulate InitialRegistration flow - notify about existing file
-	// This is what devwatch does during startup
 	err = w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "create")
 	if err != nil {
 		t.Fatalf("NewFileEvent with create event failed: %v", err)
 	}
-	t.Logf("After NewFileEvent create - Logger output: %s", outputBuffer.String())
-	outputBuffer.Reset() // Clear buffer for next operations
 
+	outPath := func() string {
+		return filepath.Join(webDir, cfg.WebFilesSubRelative, "main.wasm")
+	}
+
+	// Initial compile in coding mode to get a baseline file size
+	fi, err := os.Stat(outPath())
+	if err != nil {
+		t.Fatalf("coding mode: expected output file at %s, got error: %v", outPath(), err)
+	}
+	codingModeFileSize := fi.Size()
+	if codingModeFileSize == 0 {
+		t.Fatalf("coding mode: output file exists but is empty: %s", outPath())
+	}
+	t.Logf("coding mode: successfully compiled %d bytes", codingModeFileSize)
+
+	// Test cases for mode switching
 	tests := []struct {
 		mode         string
 		name         string
 		requiresTiny bool
+		assertSize   func(t *testing.T, size int64)
 	}{
-		{mode: w.Config.CodingShortcut, name: "coding", requiresTiny: false},
-		{mode: w.Config.DebuggingShortcut, name: "debugging", requiresTiny: true},
-		{mode: w.Config.ProductionShortcut, name: "production", requiresTiny: true},
-	}
-
-	outPath := func() string {
-		return filepath.Join(webDir, cfg.WebFilesSubRelative, "main.wasm")
+		{
+			mode: w.Config.DebuggingShortcut, name: "debugging", requiresTiny: true,
+			assertSize: func(t *testing.T, size int64) {
+				if size == codingModeFileSize {
+					t.Errorf("debugging mode file size (%d) should be different from coding mode size (%d)", size, codingModeFileSize)
+				}
+			},
+		},
+		{
+			mode: w.Config.ProductionShortcut, name: "production", requiresTiny: true,
+			assertSize: func(t *testing.T, size int64) {
+				if size == codingModeFileSize {
+					t.Errorf("production mode file size (%d) should be different from coding mode size (%d)", size, codingModeFileSize)
+				}
+				// Production should be smaller than debug, but let's check against coding for simplicity
+				if size >= codingModeFileSize {
+					t.Errorf("production mode file size (%d) should be smaller than coding mode size (%d)", size, codingModeFileSize)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -82,40 +110,35 @@ func main() {
 				t.Skipf("tinygo not in PATH; skipping %s mode", tc.name)
 			}
 
-			// Clear any previous output
-			_ = os.Remove(outPath())
-
-			// Step 2: Change compilation mode (this is how users switch modes in DevTUI)
-			t.Logf("Before Change - Current mode: %s, Active builder: %T", w.Value(), w.activeBuilder)
+			// Step 2: Change compilation mode
 			var progressMsg string
 			w.Change(tc.mode, func(msgs ...any) {
 				if len(msgs) > 0 {
 					progressMsg = fmt.Sprint(msgs...)
 				}
 			})
-			t.Logf("After Change to %s mode - Current mode: %s, Active builder: %T, Progress: %s, Logger: %s",
-				tc.name, w.Value(), w.activeBuilder, progressMsg, outputBuffer.String())
-			outputBuffer.Reset() // Clear buffer for next operations
 
-			// Step 3: Simulate file modification event (this triggers recompilation)
-			// This is what devwatch does when user modifies main.wasm.go
+			// Assert that the internal mode has changed
+			if w.Value() != tc.mode {
+				t.Fatalf("After Change, expected mode '%s', got '%s'", tc.mode, w.Value())
+			}
+
+			// Step 3: Simulate file modification event to trigger re-compilation
 			err := w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
 			if err != nil {
 				t.Fatalf("mode %s: NewFileEvent with write event failed: %v; progress: %s", tc.name, err, progressMsg)
 			}
-			t.Logf("After NewFileEvent write - Logger output: %s", outputBuffer.String())
-			outputBuffer.Reset() // Clear buffer for next operations
 
-			// Step 4: Verify output file exists on disk
+			// Step 4: Verify output file and its size
 			fi, err := os.Stat(outPath())
 			if err != nil {
 				t.Fatalf("mode %s: expected output file at %s, got error: %v; progress: %s", tc.name, outPath(), err, progressMsg)
 			}
-			if fi.Size() == 0 {
-				t.Fatalf("mode %s: output file exists but is empty: %s", tc.name, outPath())
-			}
 
-			t.Logf("mode %s: successfully compiled %d bytes to %s; progress: %s", tc.name, fi.Size(), outPath(), progressMsg)
+			// Use the specific assertion for the test case
+			tc.assertSize(t, fi.Size())
+
+			t.Logf("mode %s: successfully compiled %d bytes; progress: %s", tc.name, fi.Size(), progressMsg)
 		})
 	}
 }
