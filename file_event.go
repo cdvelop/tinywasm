@@ -27,7 +27,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 		// File should be ignored (backend file or unknown type)
 		return nil
 	}
-	if event != "write" {
+	if event != "write" && event != "create" {
 		return nil
 	}
 
