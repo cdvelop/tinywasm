@@ -36,12 +36,11 @@ func main() {
 
 	// Prepare config with logger to prevent nil pointer dereference
 	var outputBuffer bytes.Buffer
-	cfg := &Config{
-		WebFilesRootRelative: webDir,
-		WebFilesSubRelative:  "public",
-		TinyGoCompiler:       true, // allow tinygo when present
-		Logger:               &outputBuffer,
-	}
+	cfg := NewConfig()
+	cfg.WebFilesRootRelative = webDir
+	cfg.WebFilesSubRelative = "public"
+	cfg.TinyGoCompiler = true // allow tinygo when present
+	cfg.Logger = &outputBuffer
 
 	w := New(cfg)
 
