@@ -76,6 +76,19 @@ func main() {
 	}
 	t.Logf("coding mode: successfully compiled %d bytes", codingModeFileSize)
 
+	// Test JavaScript generation for initial coding mode (Go compiler)
+	t.Log("Testing JavascriptForInitializing for initial coding mode")
+	goJS, err := w.JavascriptForInitializing()
+	if err != nil {
+		t.Errorf("coding mode: JavascriptForInitializing failed: %v", err)
+		t.Logf("Logger output: %s", outputBuffer.String())
+	} else {
+		t.Logf("coding mode: JavascriptForInitializing success, length: %d", len(goJS))
+		if len(goJS) == 0 {
+			t.Errorf("coding mode: JavascriptForInitializing returned empty JavaScript")
+		}
+	}
+
 	// Test cases for mode switching
 	tests := []struct {
 		mode         string
@@ -124,8 +137,35 @@ func main() {
 				t.Fatalf("After Change, expected mode '%s', got '%s'", tc.mode, w.Value())
 			}
 
+			// Test JavaScript generation after mode change
+			modeJS, err := w.JavascriptForInitializing()
+			if err != nil {
+				t.Errorf("%s mode: JavascriptForInitializing failed: %v", tc.name, err)
+				t.Logf("Logger output: %s", outputBuffer.String())
+				return
+			}
+
+			t.Logf("%s mode: JavascriptForInitializing success, length: %d", tc.name, len(modeJS))
+			if len(modeJS) == 0 {
+				t.Errorf("%s mode: JavascriptForInitializing returned empty JavaScript", tc.name)
+				return
+			}
+
+			// Clear cache to test fresh generation
+			w.ClearJavaScriptCache()
+
+			// Test again to verify cache clearing works
+			freshJS, freshErr := w.JavascriptForInitializing()
+			if freshErr != nil {
+				t.Errorf("%s mode: JavascriptForInitializing after cache clear failed: %v", tc.name, freshErr)
+			} else if modeJS != freshJS {
+				t.Errorf("%s mode: JavaScript differs after cache clear (length %d vs %d)", tc.name, len(modeJS), len(freshJS))
+			} else {
+				t.Logf("%s mode: JavaScript consistent after cache clear", tc.name)
+			}
+
 			// Step 3: Simulate file modification event to trigger re-compilation
-			err := w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
+			err = w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
 			if err != nil {
 				t.Fatalf("mode %s: NewFileEvent with write event failed: %v; progress: %s", tc.name, err, progressMsg)
 			}
@@ -141,5 +181,21 @@ func main() {
 
 			t.Logf("mode %s: successfully compiled %d bytes; progress: %s", tc.name, fi.Size(), progressMsg)
 		})
+	}
+
+	// Verify that Go and TinyGo generate different JavaScript
+	if tinygoPresent {
+		// Switch to a TinyGo mode to get TinyGo JavaScript
+		w.Change(w.Config.DebuggingShortcut, nil)
+		tinygoJS, err := w.JavascriptForInitializing()
+		if err != nil {
+			t.Errorf("Failed to get TinyGo JavaScript: %v", err)
+		} else if len(tinygoJS) > 0 && len(goJS) > 0 {
+			if goJS == tinygoJS {
+				t.Errorf("Go and TinyGo should generate different JavaScript but they are identical (lengths: Go=%d, TinyGo=%d)", len(goJS), len(tinygoJS))
+			} else {
+				t.Logf("SUCCESS: Go and TinyGo generate different JavaScript (lengths: Go=%d, TinyGo=%d)", len(goJS), len(tinygoJS))
+			}
+		}
 	}
 }

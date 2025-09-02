@@ -122,7 +122,11 @@ func (w *TinyWasm) Name() string {
 
 // WasmProjectTinyGoJsUse returns dynamic state based on current configuration
 func (w *TinyWasm) WasmProjectTinyGoJsUse() (bool, bool) {
-	return w.wasmProject, w.tinyGoCompiler
+	// Update TinyGo compiler state based on current mode
+	currentMode := w.Value()
+	useTinyGo := w.requiresTinyGo(currentMode) && w.tinyGoInstalled
+
+	return w.wasmProject, useTinyGo
 }
 
 // TinyGoCompiler returns if TinyGo compiler should be used (dynamic based on configuration)
@@ -403,33 +407,91 @@ func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 	}
 }
 
-// getWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file
-func (w *TinyWasm) getWasmExecJsPathTinyGo() (string, error) {
-	path, err := exec.LookPath("tinygo")
-	if err != nil {
-		return "", err
+// GetWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file
+func (w *TinyWasm) GetWasmExecJsPathTinyGo() (string, error) {
+	// Method 1: Try standard lib location pattern
+	libPaths := []string{
+		"/usr/local/lib/tinygo/targets/wasm_exec.js",
+		"/opt/tinygo/targets/wasm_exec.js",
 	}
-	// Get installation directory
-	tinyGoDir := filepath.Dir(path)
-	// Clean path and remove "\bin"
-	tinyGoDir = strings.TrimSuffix(tinyGoDir, "\\bin")
-	// Build complete path to wasm_exec.js file
-	return filepath.Join(tinyGoDir, "targets", "wasm_exec.js"), nil
+
+	for _, path := range libPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	// Method 2: Derive from tinygo executable path
+	tinygoPath, err := exec.LookPath("tinygo")
+	if err != nil {
+		return "", fmt.Errorf("tinygo executable not found: %v", err)
+	}
+
+	// Get directory where tinygo is located
+	tinyGoDir := filepath.Dir(tinygoPath)
+
+	// Common installation patterns
+	patterns := []string{
+		// For /usr/local/bin/tinygo -> /usr/local/lib/tinygo/targets/wasm_exec.js
+		filepath.Join(filepath.Dir(tinyGoDir), "lib", "tinygo", "targets", "wasm_exec.js"),
+		// For /usr/bin/tinygo -> /usr/lib/tinygo/targets/wasm_exec.js
+		filepath.Join(filepath.Dir(tinyGoDir), "lib", "tinygo", "targets", "wasm_exec.js"),
+		// For portable installation: remove bin and add targets
+		filepath.Join(filepath.Dir(tinyGoDir), "targets", "wasm_exec.js"),
+	}
+
+	for _, wasmExecPath := range patterns {
+		if _, err := os.Stat(wasmExecPath); err == nil {
+			return wasmExecPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("TinyGo wasm_exec.js not found. Searched paths: %v", append(libPaths, patterns...))
 }
 
-// getWasmExecJsPathGo returns the path to Go's wasm_exec.js file
-func (w *TinyWasm) getWasmExecJsPathGo() (string, error) {
-	// Get Go installation directory path from GOROOT environment variable
-	path, er := exec.LookPath("go")
-	if er != nil {
-		return "", er
+// GetWasmExecJsPathGo returns the path to Go's wasm_exec.js file
+func (w *TinyWasm) GetWasmExecJsPathGo() (string, error) {
+	// Method 1: Try GOROOT environment variable (most reliable)
+	goRoot := os.Getenv("GOROOT")
+	if goRoot != "" {
+		patterns := []string{
+			filepath.Join(goRoot, "misc", "wasm", "wasm_exec.js"), // Traditional location
+			filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js"),  // Modern location
+		}
+		for _, wasmExecPath := range patterns {
+			if _, err := os.Stat(wasmExecPath); err == nil {
+				return wasmExecPath, nil
+			}
+		}
 	}
-	// Get installation directory
-	GoDir := filepath.Dir(path)
-	// Clean path and remove "\bin"
-	GoDir = strings.TrimSuffix(GoDir, "\\bin")
-	// Build complete path to wasm_exec.js file
-	return filepath.Join(GoDir, "misc", "wasm", "wasm_exec.js"), nil
+
+	// Method 2: Derive from go executable path
+	goPath, err := exec.LookPath("go")
+	if err != nil {
+		return "", fmt.Errorf("go executable not found: %v", err)
+	}
+
+	// Get installation directory (parent of bin directory)
+	goDir := filepath.Dir(goPath)
+
+	// Remove bin directory from path (cross-platform)
+	if filepath.Base(goDir) == "bin" {
+		goDir = filepath.Dir(goDir)
+	}
+
+	// Try multiple patterns for different Go versions
+	patterns := []string{
+		filepath.Join(goDir, "misc", "wasm", "wasm_exec.js"), // Traditional location
+		filepath.Join(goDir, "lib", "wasm", "wasm_exec.js"),  // Modern location (Go 1.21+)
+	}
+
+	for _, wasmExecPath := range patterns {
+		if _, err := os.Stat(wasmExecPath); err == nil {
+			return wasmExecPath, nil
+		}
+	}
+
+	return "", fmt.Errorf("go wasm_exec.js not found. Searched: GOROOT=%s, patterns=%v", goRoot, patterns)
 }
 
 // (Deprecated field FrontendPrefix removed) frontend detection is no longer supported.

@@ -1,6 +1,9 @@
 package tinywasm
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // JavascriptForInitializing returns the JavaScript code needed to initialize WASM
 func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
@@ -19,9 +22,9 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 
 	var wasmExecJsPath string
 	if TinyGoCompiler {
-		wasmExecJsPath, err = h.getWasmExecJsPathTinyGo()
+		wasmExecJsPath, err = h.GetWasmExecJsPathTinyGo()
 	} else {
-		wasmExecJsPath, err = h.getWasmExecJsPathGo()
+		wasmExecJsPath, err = h.GetWasmExecJsPathGo()
 	}
 	if err != nil {
 		return "", err
@@ -34,6 +37,11 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 	}
 
 	stringWasmJs := string(wasmJs)
+
+	// Verify activeBuilder is initialized before accessing it
+	if h.activeBuilder == nil {
+		return "", fmt.Errorf("activeBuilder not initialized")
+	}
 
 	// add code webassebly here
 	stringWasmJs += `
@@ -51,4 +59,10 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 	}
 
 	return stringWasmJs, nil
+}
+
+// ClearJavaScriptCache clears both cached JavaScript strings to force regeneration
+func (h *TinyWasm) ClearJavaScriptCache() {
+	h.goWasmJsCache = ""
+	h.tinyGoWasmJsCache = ""
 }
