@@ -47,8 +47,8 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 // MainInputFileRelativePath returns the relative path to the main WASM input file (e.g. "main.wasm.go").
 func (w *TinyWasm) MainInputFileRelativePath() string {
 	// The input lives under the web root (WebFilesRootRelative) by convention.
-	rootFolder := w.Config.WebFilesRootRelative
-	return path.Join(rootFolder, w.mainInputFile)
+	// Return full path including AppRootDir for callers that expect absolute paths
+	return path.Join(w.Config.WebFilesRootRelative, w.mainInputFile)
 }
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm

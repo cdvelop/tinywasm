@@ -12,7 +12,9 @@ import (
 func TestTinyWasmNewFileEvent(t *testing.T) {
 	// Setup test environment with an isolated temporary directory
 	rootDir := t.TempDir()
-	webDir := filepath.Join(rootDir, "wasmTest")
+	// WebFilesRootRelative should be the subfolder name under AppRootDir
+	webDirName := "wasmTest"
+	webDir := filepath.Join(rootDir, webDirName)
 
 	publicDir := filepath.Join(webDir, "public")
 	// Create directories
@@ -25,14 +27,15 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	// Configure TinyWasm handler with a buffer for testing output
 	var outputBuffer bytes.Buffer
 	config := &Config{
-		WebFilesRootRelative: webDir,
+		AppRootDir:           rootDir,
+		WebFilesRootRelative: webDirName,
 		WebFilesSubRelative:  "public",
 		Logger:               &outputBuffer,
 	}
 
 	tinyWasm := New(config)
 	t.Run("Verify main.wasm.go compilation", func(t *testing.T) {
-		mainWasmPath := filepath.Join(webDir, "main.wasm.go") // main.wasm.go in web root
+		mainWasmPath := filepath.Join(rootDir, webDirName, "main.wasm.go") // main.wasm.go in web root
 		defer os.Remove(mainWasmPath)
 
 		// Create main wasm file
@@ -56,7 +59,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	})
 	t.Run("Verify module wasm compilation now goes to main.wasm", func(t *testing.T) {
 		// Create main.wasm.go in the web root first
-		mainWasmPath := filepath.Join(webDir, "main.wasm.go") // main.wasm.go in web root
+		mainWasmPath := filepath.Join(rootDir, webDirName, "main.wasm.go") // main.wasm.go in web root
 		mainContent := `package main
 
 		func main() {
@@ -65,7 +68,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		os.WriteFile(mainWasmPath, []byte(mainContent), 0644)
 
 		// Create another .wasm.go file in webDir to simulate additional WASM entry
-		moduleWasmPath := filepath.Join(webDir, "users.wasm.go")
+		moduleWasmPath := filepath.Join(rootDir, webDirName, "users.wasm.go")
 		content := `package main
 
 		func main() {
@@ -98,7 +101,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	})
 
 	t.Run("Handle non-write event", func(t *testing.T) {
-		mainWasmPath := filepath.Join(publicDir, "wasm", "main.wasm.go")
+		mainWasmPath := filepath.Join(rootDir, webDirName, "public", "wasm", "main.wasm.go")
 		err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "create")
 		if err != nil {
 			t.Fatal("Expected no error for non-write event")
@@ -108,7 +111,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		// Test initial configuration
 		var outputBuffer bytes.Buffer
 		config := NewConfig()
-		config.WebFilesRootRelative = webDir
+		config.AppRootDir = rootDir
+		config.WebFilesRootRelative = webDirName
 		config.WebFilesSubRelative = "public"
 		config.Logger = &outputBuffer
 		config.TinyGoCompiler = false // Start with Go standard compiler
@@ -147,6 +151,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 func TestUnobservedFiles(t *testing.T) {
 	var outputBuffer bytes.Buffer
 	config := &Config{
+		AppRootDir:           ".",
 		WebFilesRootRelative: "web",
 		WebFilesSubRelative:  "public",
 		Logger:               &outputBuffer,

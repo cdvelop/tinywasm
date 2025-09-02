@@ -40,11 +40,14 @@ type TinyWasm struct {
 
 	// Function pointer for efficient WASM project detection
 	wasmDetectionFunc func(string, string) // (fileName, filePath)
-	rootDir           string               // Project root directory, default "."
 }
 
 // Config holds configuration for WASM compilation
 type Config struct {
+
+	// AppRootDir specifies the application root directory (absolute).
+	// e.g., "/home/user/project". If empty, defaults to "." to preserve existing behavior.
+	AppRootDir           string
 	WebFilesRootRelative string    // root web folder (relative) eg: "web"
 	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
 	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
@@ -63,6 +66,7 @@ type Config struct {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
 	return &Config{
+		AppRootDir:         ".",
 		CodingShortcut:     "c",
 		DebuggingShortcut:  "d",
 		ProductionShortcut: "p",
@@ -74,10 +78,17 @@ func NewConfig() *Config {
 // Timeout is set to 40 seconds maximum as TinyGo compilation can be slow
 // Default values: mainInputFile="main.wasm.go"
 func New(c *Config) *TinyWasm {
+	// Ensure we have a config and a default AppRootDir
+	if c == nil {
+		c = NewConfig()
+	}
+	if c.AppRootDir == "" {
+		c.AppRootDir = "."
+	}
+
 	w := &TinyWasm{
 		Config:        c,
 		mainInputFile: "main.wasm.go",
-		rootDir:       ".", // Default root directory
 
 		// Initialize dynamic fields
 		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
@@ -86,6 +97,10 @@ func New(c *Config) *TinyWasm {
 
 		// Initialize with default mode
 		currentMode: c.CodingShortcut, // Start with coding mode
+	}
+
+	if w.currentMode == "" {
+		w.currentMode = w.Config.CodingShortcut
 	}
 
 	// Initialize WASM detection function pointer (starts active)
@@ -117,7 +132,7 @@ func (w *TinyWasm) TinyGoCompiler() bool {
 
 // initializeBuilder configures 3 builders for WASM compilation modes
 func (w *TinyWasm) initializeBuilder() {
-	rootFolder := w.Config.WebFilesRootRelative
+	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	subFolder := w.Config.WebFilesSubRelative
 	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
 	outFolder := path.Join(rootFolder, subFolder)
@@ -282,7 +297,7 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	// Validate mode
 	if err := w.validateMode(newValue); err != nil {
 		if progress != nil {
-			progress(err.Error())
+			progress(err)
 		}
 		return
 	}
@@ -300,7 +315,7 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	w.updateCurrentBuilder(newValue)
 
 	// Check if main WASM file exists before attempting compilation
-	rootFolder := w.Config.WebFilesRootRelative
+	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
 	if _, err := os.Stat(mainWasmPath); err != nil {
 		// File doesn't exist, just report success message without compilation
@@ -350,7 +365,7 @@ func (w *TinyWasm) recompileMainWasm() error {
 	if w.activeBuilder == nil {
 		return errors.New("builder not initialized")
 	}
-	rootFolder := w.Config.WebFilesRootRelative
+	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
 
 	// Check if main.wasm.go exists

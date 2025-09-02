@@ -16,7 +16,8 @@ import (
 func TestCompileAllModes(t *testing.T) {
 	// Create isolated temp workspace
 	tmp := t.TempDir()
-	webDir := filepath.Join(tmp, "web")
+	webDirName := "web"
+	webDir := filepath.Join(tmp, webDirName)
 	publicDir := filepath.Join(webDir, "public")
 	if err := os.MkdirAll(publicDir, 0755); err != nil {
 		t.Fatalf("failed to create test dirs: %v", err)
@@ -37,7 +38,8 @@ func main() {
 	// Prepare config with logger to prevent nil pointer dereference
 	var outputBuffer bytes.Buffer
 	cfg := NewConfig()
-	cfg.WebFilesRootRelative = webDir
+	cfg.AppRootDir = tmp
+	cfg.WebFilesRootRelative = webDirName
 	cfg.WebFilesSubRelative = "public"
 	cfg.TinyGoCompiler = true // allow tinygo when present
 	cfg.Logger = &outputBuffer
@@ -60,7 +62,7 @@ func main() {
 	}
 
 	outPath := func() string {
-		return filepath.Join(webDir, cfg.WebFilesSubRelative, "main.wasm")
+		return filepath.Join(tmp, cfg.WebFilesRootRelative, cfg.WebFilesSubRelative, "main.wasm")
 	}
 
 	// Initial compile in coding mode to get a baseline file size

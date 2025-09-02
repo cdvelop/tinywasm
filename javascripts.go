@@ -35,6 +35,14 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 
 	stringWasmJs := string(wasmJs)
 
+	// add code webassebly here
+	stringWasmJs += `
+		const go = new Go();
+		WebAssembly.instantiateStreaming(fetch("` + h.activeBuilder.MainOutputFileNameWithExtension() + `"), go.importObject).then((result) => {
+			go.run(result.instance);
+		});
+	`
+
 	// Store in appropriate cache
 	if TinyGoCompiler {
 		h.tinyGoWasmJsCache = stringWasmJs

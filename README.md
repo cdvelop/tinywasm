@@ -146,3 +146,6 @@ tw.Change("c")  // coding mode with Go standard
 - 📦 **Smaller debug builds** with TinyGo -opt=1
 - ⚡ **Auto-recompilation** on mode switch
 - 🛠️ **Better error handling** with validation
+
+
+## [Contributing](https://github.com/cdvelop/cdvelop/blob/main/CONTRIBUTING.md)

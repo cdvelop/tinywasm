@@ -22,7 +22,8 @@ func TestVSCodeConfiguration(t *testing.T) {
 
 	// Create TinyWasm instance with test directory as root
 	tinyWasm := New(config)
-	tinyWasm.rootDir = testDir
+	// Prefer explicit AppRootDir on config for test clarity
+	tinyWasm.AppRootDir = testDir
 
 	// Verify initial state - detection function should be active
 	if tinyWasm.wasmDetectionFunc == nil {
@@ -110,7 +111,7 @@ func TestVSCodeConfigurationFunctionSwitch(t *testing.T) {
 	}
 	// Create TinyWasm instance
 	tinyWasm := New(config)
-	tinyWasm.rootDir = testDir
+	tinyWasm.AppRootDir = testDir
 
 	// Trigger WASM project detection (this should switch to inactive function)
 	tinyWasm.wasmDetectionFunc("main.wasm.go", filepath.Join(testDir, "main.wasm.go"))
