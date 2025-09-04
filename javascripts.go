@@ -3,7 +3,105 @@ package tinywasm
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 )
+
+// wasm_execGoSignatures returns signatures expected in Go's wasm_exec.js
+func wasm_execGoSignatures() []string {
+	return []string{
+		"runtime.scheduleTimeoutEvent",
+		"runtime.clearTimeoutEvent",
+		"runtime.wasmExit",
+		// note: removed shared or ambiguous signatures such as syscall/js.valueGet
+	}
+}
+
+// wasm_execTinyGoSignatures returns signatures expected in TinyGo's wasm_exec.js
+func wasm_execTinyGoSignatures() []string {
+	return []string{
+		"runtime.sleepTicks",
+		"runtime.ticks",
+		"$runtime.alloc",
+		"tinygo_js",
+	}
+}
+
+func (h *TinyWasm) wasmDetectionFuncFromJsFileActive(fileName, extension, filePath, event string) {
+	// Only care about create events for .js files
+	if extension != ".js" || event != "create" {
+		return
+	}
+
+	// Only analyze files under the configured web subfolder
+	webSub := filepath.Join(h.AppRootDir, h.Config.WebFilesRootRelative, h.Config.WebFilesSubRelative)
+	// Clean paths for reliable prefix checks
+	cleanPath := filepath.Clean(filePath)
+	cleanWeb := filepath.Clean(webSub)
+	if !strings.HasPrefix(cleanPath, cleanWeb) {
+		return
+	}
+
+	// Read file content (best-effort)
+	data, err := os.ReadFile(cleanPath)
+	if err != nil {
+		fmt.Fprintf(h.Logger, "wasm JS detection read error: %v\n", err)
+		return
+	}
+	content := string(data)
+
+	// Count signatures
+	goCount := 0
+	for _, s := range wasm_execGoSignatures() {
+		if strings.Contains(content, s) {
+			goCount++
+		}
+	}
+	tinyCount := 0
+	for _, s := range wasm_execTinyGoSignatures() {
+		if strings.Contains(content, s) {
+			tinyCount++
+		}
+	}
+
+	detected := "none"
+	if tinyCount > goCount && tinyCount > 0 {
+		// TinyGo detected
+		h.tinyGoCompiler = true
+		h.wasmProject = true
+		detected = "tinygo"
+	} else if goCount > tinyCount && goCount > 0 {
+		// Go detected
+		h.tinyGoCompiler = false
+		h.wasmProject = true
+		detected = "go"
+	} else if tinyCount > 0 && goCount == 0 {
+		h.tinyGoCompiler = true
+		h.wasmProject = true
+		detected = "tinygo"
+	} else if goCount > 0 && tinyCount == 0 {
+		h.tinyGoCompiler = false
+		h.wasmProject = true
+		detected = "go"
+	} else {
+		// ambiguous or no detection
+		fmt.Fprintf(h.Logger, "DEBUG: JS detection ambiguous or no signatures: go=%d tiny=%d\n", goCount, tinyCount)
+		return
+	}
+
+	fmt.Fprintf(h.Logger, "DEBUG: JS detection: %s (goCount=%d tinyCount=%d)\n", detected, goCount, tinyCount)
+
+	// Clear caches so the correct wasm_exec.js will be reloaded
+	h.ClearJavaScriptCache()
+
+	// Deactivate further detection handlers
+	h.wasmDetectionFuncFromGoFile = h.wasmDetectionFuncFromGoFileInactive
+	h.wasmDetectionFuncFromJsFile = h.wasmDetectionFuncFromJsFileInactive
+}
+
+func (h *TinyWasm) wasmDetectionFuncFromJsFileInactive(fileName, extension, filePath, event string) {
+
+}
 
 // JavascriptForInitializing returns the JavaScript code needed to initialize WASM
 func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {

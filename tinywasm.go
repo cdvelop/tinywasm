@@ -39,7 +39,8 @@ type TinyWasm struct {
 	tinyGoWasmJsCache string
 
 	// Function pointer for efficient WASM project detection
-	wasmDetectionFunc func(string, string) // (fileName, filePath)
+	wasmDetectionFuncFromGoFile func(string, string) // (fileName, filePath)
+	wasmDetectionFuncFromJsFile func(fileName, extension, filePath, event string)
 }
 
 // Config holds configuration for WASM compilation
@@ -104,7 +105,11 @@ func New(c *Config) *TinyWasm {
 	}
 
 	// Initialize WASM detection function pointer (starts active)
-	w.wasmDetectionFunc = w.updateWasmProjectDetectionActive
+
+	// FROM JS FILE
+	w.wasmDetectionFuncFromJsFile = w.wasmDetectionFuncFromJsFileActive
+	// FROM GO FILE
+	w.wasmDetectionFuncFromGoFile = w.wasmDetectionFuncFromGoFileActive
 
 	// Check TinyGo installation status
 	w.verifyTinyGoInstallationStatus()
@@ -113,6 +118,10 @@ func New(c *Config) *TinyWasm {
 	w.initializeBuilder()
 
 	return w
+}
+
+func (w *TinyWasm) SupportedExtensions() []string {
+	return []string{".js", ".go"}
 }
 
 // Name returns the name of the WASM project

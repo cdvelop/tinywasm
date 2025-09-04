@@ -18,10 +18,14 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	if filePath == "" {
 		return errors.New(e + "filePath is empty")
 	}
-	// Auto-detect WASM project based on file structure
-	w.wasmDetectionFunc(fileName, filePath)
 
-	fmt.Fprint(w.Logger, "Wasm", extension, event, "...", filePath)
+	// Auto-detect WASM project base on js file eg: pwa/public/main.js
+	w.wasmDetectionFuncFromJsFile(fileName, extension, filePath, event)
+
+	// Auto-detect WASM project based on file structure
+	w.wasmDetectionFuncFromGoFile(fileName, filePath)
+
+	fmt.Fprint(w.Logger, extension, event, "...", filePath)
 	// Check if this file should trigger WASM compilation
 	if !w.ShouldCompileToWasm(fileName, filePath) {
 		// File should be ignored (backend file or unknown type)
@@ -56,8 +60,8 @@ func (w *TinyWasm) UnobservedFiles() []string {
 	return w.activeBuilder.UnobservedFiles()
 }
 
-// updateWasmProjectDetectionActive automatically detects if this is a WASM project and configures VS Code
-func (w *TinyWasm) updateWasmProjectDetectionActive(fileName, filePath string) {
+// wasmDetectionFuncFromGoFileActive automatically detects if this is a WASM project and configures VS Code
+func (w *TinyWasm) wasmDetectionFuncFromGoFileActive(fileName, filePath string) {
 	wasmDetected := false
 
 	// Check for main.wasm.go file (strong indicator of WASM project)
@@ -80,11 +84,11 @@ func (w *TinyWasm) updateWasmProjectDetectionActive(fileName, filePath string) {
 	// If WASM project detected, configure VS Code and switch to inactive function
 	if wasmDetected {
 		w.VisualStudioCodeWasmEnvConfig()
-		w.wasmDetectionFunc = w.updateWasmProjectDetectionInactive
+		w.wasmDetectionFuncFromGoFile = w.wasmDetectionFuncFromGoFileInactive
 	}
 }
 
-// updateWasmProjectDetectionInactive is a no-op function used after VS Code is configured
-func (w *TinyWasm) updateWasmProjectDetectionInactive(fileName, filePath string) {
+// wasmDetectionFuncFromGoFileInactive is a no-op function used after VS Code is configured
+func (w *TinyWasm) wasmDetectionFuncFromGoFileInactive(fileName, filePath string) {
 	// Do nothing - VS Code already configured
 }

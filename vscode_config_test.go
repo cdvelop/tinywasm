@@ -26,8 +26,8 @@ func TestVSCodeConfiguration(t *testing.T) {
 	tinyWasm.AppRootDir = testDir
 
 	// Verify initial state - detection function should be active
-	if tinyWasm.wasmDetectionFunc == nil {
-		t.Fatal("wasmDetectionFunc should be initialized")
+	if tinyWasm.wasmDetectionFuncFromGoFile == nil {
+		t.Fatal("wasmDetectionFuncFromGoFile should be initialized")
 	}
 
 	// Simulate file event that should trigger WASM project detection
@@ -114,13 +114,13 @@ func TestVSCodeConfigurationFunctionSwitch(t *testing.T) {
 	tinyWasm.AppRootDir = testDir
 
 	// Trigger WASM project detection (this should switch to inactive function)
-	tinyWasm.wasmDetectionFunc("main.wasm.go", filepath.Join(testDir, "main.wasm.go"))
+	tinyWasm.wasmDetectionFuncFromGoFile("main.wasm.go", filepath.Join(testDir, "main.wasm.go"))
 	// Verify function pointer changed to inactive by testing behavior
 	// We can't compare function pointers directly, but we can verify the behavior
 	initialWasmState := tinyWasm.wasmProject
 
 	// Call the function again - if it's inactive, wasmProject state shouldn't change
-	tinyWasm.wasmDetectionFunc("another.wasm.go", filepath.Join(testDir, "another.wasm.go"))
+	tinyWasm.wasmDetectionFuncFromGoFile("another.wasm.go", filepath.Join(testDir, "another.wasm.go"))
 
 	// The inactive function should not change any state
 	if initialWasmState != tinyWasm.wasmProject {
