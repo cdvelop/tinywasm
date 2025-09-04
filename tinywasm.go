@@ -28,7 +28,7 @@ type TinyWasm struct {
 	activeBuilder     *gobuild.GoBuild // Current active builder
 
 	// EXISTING: Keep for installation detection (no compilerMode needed - activeBuilder handles state)
-	tinyGoCompiler  bool // Enable TinyGo compiler
+	tinyGoCompiler  bool // Enable TinyGo compiler (default: false for faster development)
 	wasmProject     bool // Automatically detected based on file structure
 	tinyGoInstalled bool // Cached TinyGo installation status
 

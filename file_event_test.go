@@ -52,7 +52,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 
 		// Verify wasm file was created
-		outputPath := tinyWasm.MainInputFileRelativePath()
+		outputPath := tinyWasm.MainOutputFileAbsolutePath()
 		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}
@@ -82,12 +82,12 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 
 		// Verify main.wasm file was created (single output)
-		outputPath := tinyWasm.MainInputFileRelativePath()
+		outputPath := tinyWasm.MainOutputFileAbsolutePath()
 		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}
 		// Individual per-module wasm outputs are deprecated; ensure main output exists
-		oldOutputPath := tinyWasm.MainInputFileRelativePath()
+		oldOutputPath := tinyWasm.MainOutputFileAbsolutePath()
 		if _, err := os.Stat(oldOutputPath); os.IsNotExist(err) {
 			t.Fatal("main.wasm file was not created")
 		}
@@ -179,9 +179,4 @@ func TestUnobservedFiles(t *testing.T) {
 			t.Error("main.wasm.go should NOT be in unobserved files - it should be watched for changes")
 		}
 	}
-}
-
-// Test frontend prefix configuration
-func TestFrontendPrefixConfiguration(t *testing.T) {
-	// Frontend prefix configuration support has been removed.
 }

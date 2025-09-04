@@ -55,6 +55,13 @@ func (w *TinyWasm) MainInputFileRelativePath() string {
 	return path.Join(w.Config.WebFilesRootRelative, w.mainInputFile)
 }
 
+// MainOutputFileAbsolutePath returns the absolute path to the main WASM output file (e.g. "main.wasm").
+func (w *TinyWasm) MainOutputFileAbsolutePath() string {
+	// The output file is created in OutFolderRelativePath which is:
+	// AppRootDir/WebFilesRootRelative/WebFilesSubRelative/main.wasm
+	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelative, "main.wasm")
+}
+
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
 	return w.activeBuilder.UnobservedFiles()
@@ -80,7 +87,6 @@ func (w *TinyWasm) wasmDetectionFuncFromGoFileActive(fileName, filePath string) 
 		}
 	}
 
-	// Note: frontend prefix detection was removed; rely on main.wasm.go and .wasm.go files
 	// If WASM project detected, configure VS Code and switch to inactive function
 	if wasmDetected {
 		w.VisualStudioCodeWasmEnvConfig()
