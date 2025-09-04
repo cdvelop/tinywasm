@@ -49,9 +49,9 @@ type Config struct {
 	// AppRootDir specifies the application root directory (absolute).
 	// e.g., "/home/user/project". If empty, defaults to "." to preserve existing behavior.
 	AppRootDir           string
-	WebFilesRootRelative string    // root web folder (relative) eg: "web"
-	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
-	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
+	WebFilesRootRelative string // root web folder (relative) eg: "web"
+	WebFilesSubRelative  string // subfolder under root (relative) eg: "public"
+	Logger               func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
 	// NEW: Shortcut configuration (default: "c", "d", "p")
@@ -155,7 +155,7 @@ func (w *TinyWasm) initializeBuilder() {
 		OutName:                   "main", // Output will be main.wasm
 		Extension:                 ".wasm",
 		OutFolderRelativePath:     outFolder,
-		Logger:                    w.Logger,
+		Logger:                    NewLogAdapter(w.Logger),
 		Timeout:                   60 * time.Second, // 1 minute for all modes
 		Callback:                  w.Callback,
 	}
@@ -394,7 +394,7 @@ func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 	if err := w.VerifyTinyGoInstallation(); err != nil {
 		w.tinyGoInstalled = false
 		if w.Logger != nil {
-			fmt.Fprintf(w.Logger, "Warning: TinyGo not available: %v\n", err)
+			w.Logger("Warning: TinyGo not available:", err)
 		}
 	} else {
 		w.tinyGoInstalled = true
@@ -404,12 +404,12 @@ func (w *TinyWasm) verifyTinyGoInstallationStatus() {
 		if err != nil {
 			w.tinyGoInstalled = false
 			if w.Logger != nil {
-				fmt.Fprintf(w.Logger, "Warning: TinyGo version check failed: %v\n", err)
+				w.Logger("Warning: TinyGo version check failed:", err)
 			}
 		} else {
 			w.tinyGoInstalled = true
 			if w.Logger != nil {
-				fmt.Fprintf(w.Logger, "Info: TinyGo installation verified %v  \n", version)
+				w.Logger("Info: TinyGo installation verified", version)
 			}
 		}
 	}
@@ -518,4 +518,22 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 
 	// All other files should be ignored
 	return false
+}
+
+// LogAdapter adapts our logger function to an io.Writer interface
+type LogAdapter struct {
+	logFunc func(message ...any)
+}
+
+// NewLogAdapter creates a new LogAdapter
+func NewLogAdapter(logFunc func(message ...any)) *LogAdapter {
+	return &LogAdapter{logFunc: logFunc}
+}
+
+// Write implements the io.Writer interface
+func (a *LogAdapter) Write(p []byte) (n int, err error) {
+	if a.logFunc != nil {
+		a.logFunc(string(p))
+	}
+	return len(p), nil
 }

@@ -1,7 +1,6 @@
 package tinywasm
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -17,7 +16,7 @@ func TestVSCodeConfiguration(t *testing.T) {
 	config := &Config{
 		WebFilesRootRelative: testDir,
 		WebFilesSubRelative:  "public",
-		Logger:               &bytes.Buffer{},
+		Logger:               func(message ...any) {},
 	}
 
 	// Create TinyWasm instance with test directory as root
@@ -107,7 +106,7 @@ func TestVSCodeConfigurationFunctionSwitch(t *testing.T) {
 	config := &Config{
 		WebFilesRootRelative: testDir,
 		WebFilesSubRelative:  "public",
-		Logger:               &bytes.Buffer{},
+		Logger:               func(message ...any) {},
 	}
 	// Create TinyWasm instance
 	tinyWasm := New(config)
@@ -148,7 +147,7 @@ func TestMakeDirectoryHiddenWindows(t *testing.T) {
 	config := &Config{
 		WebFilesRootRelative: testDir,
 		WebFilesSubRelative:  "public",
-		Logger:               &bytes.Buffer{},
+		Logger:               func(message ...any) {},
 	}
 	tinyWasm := New(config)
 

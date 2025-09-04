@@ -45,7 +45,7 @@ func (h *TinyWasm) wasmDetectionFuncFromJsFileActive(fileName, extension, filePa
 	// Read file content (best-effort)
 	data, err := os.ReadFile(cleanPath)
 	if err != nil {
-		fmt.Fprintf(h.Logger, "wasm JS detection read error: %v\n", err)
+		h.Logger("wasm JS detection read error:", err)
 		return
 	}
 	content := string(data)
@@ -85,11 +85,11 @@ func (h *TinyWasm) wasmDetectionFuncFromJsFileActive(fileName, extension, filePa
 		detected = "go"
 	} else {
 		// ambiguous or no detection
-		fmt.Fprintf(h.Logger, "DEBUG: JS detection ambiguous or no signatures: go=%d tiny=%d\n", goCount, tinyCount)
+		h.Logger("DEBUG: JS detection ambiguous or no signatures: go=%d tiny=%d", goCount, tinyCount)
 		return
 	}
 
-	fmt.Fprintf(h.Logger, "DEBUG: JS detection: %s (goCount=%d tinyCount=%d)\n", detected, goCount, tinyCount)
+	h.Logger("DEBUG: JS detection: %s (goCount=%d tinyCount=%d)", detected, goCount, tinyCount)
 
 	// Clear caches so the correct wasm_exec.js will be reloaded
 	h.ClearJavaScriptCache()

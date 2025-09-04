@@ -2,7 +2,6 @@ package tinywasm
 
 import (
 	"errors"
-	"fmt"
 	"path"
 	"strings"
 )
@@ -25,7 +24,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	// Auto-detect WASM project based on file structure
 	w.wasmDetectionFuncFromGoFile(fileName, filePath)
 
-	fmt.Fprint(w.Logger, extension, event, "...", filePath)
+	w.Logger(extension, event, "...", filePath)
 	// Check if this file should trigger WASM compilation
 	if !w.ShouldCompileToWasm(fileName, filePath) {
 		// File should be ignored (backend file or unknown type)
