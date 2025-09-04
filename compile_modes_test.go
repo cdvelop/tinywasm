@@ -41,10 +41,11 @@ func main() {
 	cfg.AppRootDir = tmp
 	cfg.WebFilesRootRelative = webDirName
 	cfg.WebFilesSubRelative = "public"
-	cfg.TinyGoCompiler = true // allow tinygo when present
 	cfg.Logger = &outputBuffer
 
 	w := New(cfg)
+	// Allow tests to enable tinygo detection by setting the private field
+	w.tinyGoCompiler = true
 
 	// Debug: Check initial state
 	if w.Value() != w.Config.CodingShortcut {

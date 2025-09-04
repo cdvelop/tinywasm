@@ -99,7 +99,11 @@ type Config struct {
 	WebFilesRootRelative string    // root web folder (relative) eg: "web"
 	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
 	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
-	TinyGoCompiler       bool      // Enable TinyGo compiler (default: false for faster development)
+	// NOTE: `TinyGoCompiler` was removed from the public `Config` to avoid
+	// confusion. The compiler selection is controlled at runtime via the
+	// TinyWasm instance. Use `tw.Change("c"|"d"|"p")` to switch modes and
+	// `tw.Value()` to inspect the current mode. The internal boolean
+	// `tinyGoCompiler` remains a private implementation detail.
 
 	// NEW: Shortcut configuration (default: "c", "d", "p")
 	CodingShortcut     string // coding "c" compile fast with go

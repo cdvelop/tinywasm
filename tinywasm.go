@@ -52,7 +52,7 @@ type Config struct {
 	WebFilesRootRelative string    // root web folder (relative) eg: "web"
 	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
 	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
-	TinyGoCompiler       bool      // Enable TinyGo compiler (default: false for faster development)
+	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
 	// NEW: Shortcut configuration (default: "c", "d", "p")
 	CodingShortcut     string // coding "c" compile fast with go
@@ -71,7 +71,6 @@ func NewConfig() *Config {
 		CodingShortcut:     "c",
 		DebuggingShortcut:  "d",
 		ProductionShortcut: "p",
-		TinyGoCompiler:     false, // Default to fast Go compilation
 	}
 }
 
@@ -92,9 +91,9 @@ func New(c *Config) *TinyWasm {
 		mainInputFile: "main.wasm.go",
 
 		// Initialize dynamic fields
-		tinyGoCompiler:  c.TinyGoCompiler, // Use config preference
-		wasmProject:     false,            // Auto-detected later
-		tinyGoInstalled: false,            // Verified on first use
+		tinyGoCompiler:  false, // Default to fast Go compilation; enable later via TinyWasm methods if desired
+		wasmProject:     false, // Auto-detected later
+		tinyGoInstalled: false, // Verified on first use
 
 		// Initialize with default mode
 		currentMode: c.CodingShortcut, // Start with coding mode

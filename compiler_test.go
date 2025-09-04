@@ -102,10 +102,11 @@ func TestCompilerComparison(t *testing.T) {
 				WebFilesRootRelative: webDir,
 				WebFilesSubRelative:  "public",
 				Logger:               &outputBuffer,
-				TinyGoCompiler:       tc.tinyGoEnabled,
 			}
 
 			tinyWasm := New(config)
+			// Tests run in the same package so we can set the private flag directly
+			tinyWasm.tinyGoCompiler = tc.tinyGoEnabled
 
 			// Test compiler detection
 			if tc.tinyGoEnabled {

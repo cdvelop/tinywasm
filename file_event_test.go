@@ -115,9 +115,10 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		config.WebFilesRootRelative = webDirName
 		config.WebFilesSubRelative = "public"
 		config.Logger = &outputBuffer
-		config.TinyGoCompiler = false // Start with Go standard compiler
 
 		tinyWasm := New(config)
+		// Tests run inside the package; set private tinyGoCompiler explicitly
+		tinyWasm.tinyGoCompiler = false // Start with Go standard compiler
 
 		// Verify initial state (should be coding mode)
 		if tinyWasm.Value() != "c" {
