@@ -2,6 +2,7 @@ package tinywasm
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,7 +27,9 @@ func TestJSDetectionTinyGo(t *testing.T) {
 		AppRootDir:           root,
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
-		Logger:               &out,
+		Logger: func(message ...any) {
+			fmt.Fprintln(&out, message...)
+		},
 	}
 
 	w := New(cfg)
@@ -82,7 +85,9 @@ func TestJSDetectionGo(t *testing.T) {
 		AppRootDir:           root,
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
-		Logger:               &out,
+		Logger: func(message ...any) {
+			fmt.Fprintln(&out, message...)
+		},
 	}
 
 	w := New(cfg)

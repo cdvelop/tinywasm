@@ -98,7 +98,7 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 type Config struct {
 	WebFilesRootRelative string    // root web folder (relative) eg: "web"
 	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
-	Logger               io.Writer // For logging output to external systems (e.g., TUI, console)
+	Logger               func(message ...any) // For logging output to external systems (e.g., TUI, console)
 	// NOTE: `TinyGoCompiler` was removed from the public `Config` to avoid
 	// confusion. The compiler selection is controlled at runtime via the
 	// TinyWasm instance. Use `tw.Change("c"|"d"|"p")` to switch modes and
