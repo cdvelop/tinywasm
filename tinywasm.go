@@ -3,7 +3,6 @@ package tinywasm
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -155,7 +154,7 @@ func (w *TinyWasm) initializeBuilder() {
 		OutName:                   "main", // Output will be main.wasm
 		Extension:                 ".wasm",
 		OutFolderRelativePath:     outFolder,
-		Logger:                    NewLogAdapter(w.Logger),
+		Logger:                    w.Logger,
 		Timeout:                   60 * time.Second, // 1 minute for all modes
 		Callback:                  w.Callback,
 	}

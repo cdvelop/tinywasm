@@ -1,7 +1,6 @@
 package tinywasm
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,13 +23,17 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 	}
 
-	// Configure TinyWasm handler with a buffer for testing output
-	var outputBuffer bytes.Buffer
+	// Configure TinyWasm handler with a logger for testing output
+	var logMessages []string
 	config := &Config{
 		AppRootDir:           rootDir,
 		WebFilesRootRelative: webDirName,
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		},
 	}
 
 	tinyWasm := New(config)
@@ -109,12 +112,16 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	})
 	t.Run("Verify TinyGo compiler is configurable", func(t *testing.T) {
 		// Test initial configuration
-		var outputBuffer bytes.Buffer
+		var logMessages []string
 		config := NewConfig()
 		config.AppRootDir = rootDir
 		config.WebFilesRootRelative = webDirName
 		config.WebFilesSubRelative = "public"
-		config.Logger = &outputBuffer
+		config.Logger = func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		}
 
 		tinyWasm := New(config)
 		// Tests run inside the package; set private tinyGoCompiler explicitly
@@ -150,12 +157,16 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 
 // Test for UnobservedFiles method
 func TestUnobservedFiles(t *testing.T) {
-	var outputBuffer bytes.Buffer
+	var logMessages []string
 	config := &Config{
 		AppRootDir:           ".",
 		WebFilesRootRelative: "web",
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		},
 	}
 
 	tinyWasm := New(config)

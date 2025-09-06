@@ -1,7 +1,7 @@
 package tinywasm
 
 import (
-	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,12 +21,16 @@ func TestJSDetectionTinyGo(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	var out bytes.Buffer
+	var logMessages []string
 	cfg := &Config{
 		AppRootDir:           root,
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
-		Logger:               &out,
+		Logger: func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		},
 	}
 
 	w := New(cfg)
@@ -77,12 +81,16 @@ func TestJSDetectionGo(t *testing.T) {
 		t.Fatalf("mkdir: %v", err)
 	}
 
-	var out bytes.Buffer
+	var logMessages []string
 	cfg := &Config{
 		AppRootDir:           root,
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
-		Logger:               &out,
+		Logger: func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		},
 	}
 
 	w := New(cfg)

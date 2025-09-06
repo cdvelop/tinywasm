@@ -1,7 +1,6 @@
 package tinywasm
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,11 +16,15 @@ func TestShouldCompileToWasm(t *testing.T) {
 	defer os.RemoveAll(webDir)
 
 	// modules support removed; tests operate on webDir directly
-	var outputBuffer bytes.Buffer
+	var logMessages []string
 	config := &Config{
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			for _, msg := range message {
+				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+			}
+		},
 	}
 
 	tinyWasm := New(config)
@@ -97,11 +100,15 @@ func TestCompilerComparison(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var outputBuffer bytes.Buffer
+			var logMessages []string
 			config := &Config{
 				WebFilesRootRelative: webDir,
 				WebFilesSubRelative:  "public",
-				Logger:               &outputBuffer,
+				Logger: func(message ...any) {
+					for _, msg := range message {
+						logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+					}
+				},
 			}
 
 			tinyWasm := New(config)

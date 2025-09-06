@@ -1,7 +1,6 @@
 package tinywasm
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,12 +35,16 @@ func main() {
 	}
 
 	// Prepare config with logger to prevent nil pointer dereference
-	var outputBuffer bytes.Buffer
+	var logMessages []string
 	cfg := NewConfig()
 	cfg.AppRootDir = tmp
 	cfg.WebFilesRootRelative = webDirName
 	cfg.WebFilesSubRelative = "public"
-	cfg.Logger = &outputBuffer
+	cfg.Logger = func(message ...any) {
+		for _, msg := range message {
+			logMessages = append(logMessages, fmt.Sprintf("%v", msg))
+		}
+	}
 
 	w := New(cfg)
 	// Allow tests to enable tinygo detection by setting the private field
@@ -82,7 +85,7 @@ func main() {
 	goJS, err := w.JavascriptForInitializing()
 	if err != nil {
 		t.Errorf("coding mode: JavascriptForInitializing failed: %v", err)
-		t.Logf("Logger output: %s", outputBuffer.String())
+		t.Logf("Logger output: %v", logMessages)
 	} else {
 		t.Logf("coding mode: JavascriptForInitializing success, length: %d", len(goJS))
 		if len(goJS) == 0 {
@@ -142,7 +145,7 @@ func main() {
 			modeJS, err := w.JavascriptForInitializing()
 			if err != nil {
 				t.Errorf("%s mode: JavascriptForInitializing failed: %v", tc.name, err)
-				t.Logf("Logger output: %s", outputBuffer.String())
+				t.Logf("Logger output: %v", logMessages)
 				return
 			}
 
