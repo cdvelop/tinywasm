@@ -21,9 +21,7 @@ func TestShouldCompileToWasm(t *testing.T) {
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  "public",
 		Logger: func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 
@@ -105,9 +103,7 @@ func TestCompilerComparison(t *testing.T) {
 				WebFilesRootRelative: webDir,
 				WebFilesSubRelative:  "public",
 				Logger: func(message ...any) {
-					for _, msg := range message {
-						logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-					}
+					logMessages = append(logMessages, fmt.Sprint(message...))
 				},
 			}
 

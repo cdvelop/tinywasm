@@ -48,7 +48,7 @@ func (w *TinyWasm) VerifyTinyGoProjectCompatibility() {
 		for _, imp := range problematicImports {
 			importStr := fmt.Sprintf("\"%s\"", imp)
 			if contains(content, importStr) {
-				w.Logger("❌ Found problematic import %s in %s", imp, path)
+				w.Logger(fmt.Sprintf("❌ Found problematic import %s in %s", imp, path))
 				found = true
 			}
 		}

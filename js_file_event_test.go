@@ -27,9 +27,7 @@ func TestJSDetectionTinyGo(t *testing.T) {
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
 		Logger: func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 
@@ -87,9 +85,7 @@ func TestJSDetectionGo(t *testing.T) {
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  sub,
 		Logger: func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 

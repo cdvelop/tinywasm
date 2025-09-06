@@ -41,9 +41,7 @@ func main() {
 	cfg.WebFilesRootRelative = webDirName
 	cfg.WebFilesSubRelative = "public"
 	cfg.Logger = func(message ...any) {
-		for _, msg := range message {
-			logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-		}
+		logMessages = append(logMessages, fmt.Sprint(message...))
 	}
 
 	w := New(cfg)
@@ -85,7 +83,7 @@ func main() {
 	goJS, err := w.JavascriptForInitializing()
 	if err != nil {
 		t.Errorf("coding mode: JavascriptForInitializing failed: %v", err)
-		t.Logf("Logger output: %v", logMessages)
+		t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
 	} else {
 		t.Logf("coding mode: JavascriptForInitializing success, length: %d", len(goJS))
 		if len(goJS) == 0 {
@@ -145,7 +143,7 @@ func main() {
 			modeJS, err := w.JavascriptForInitializing()
 			if err != nil {
 				t.Errorf("%s mode: JavascriptForInitializing failed: %v", tc.name, err)
-				t.Logf("Logger output: %v", logMessages)
+				t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
 				return
 			}
 

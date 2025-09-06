@@ -30,9 +30,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		WebFilesRootRelative: webDirName,
 		WebFilesSubRelative:  "public",
 		Logger: func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 
@@ -43,7 +41,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 
 		// Create main wasm file
 		content := `package main
-		
+
 		func main() {
 			println("Hello TinyWasm!")
 		}`
@@ -118,9 +116,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		config.WebFilesRootRelative = webDirName
 		config.WebFilesSubRelative = "public"
 		config.Logger = func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		}
 
 		tinyWasm := New(config)
@@ -163,9 +159,7 @@ func TestUnobservedFiles(t *testing.T) {
 		WebFilesRootRelative: "web",
 		WebFilesSubRelative:  "public",
 		Logger: func(message ...any) {
-			for _, msg := range message {
-				logMessages = append(logMessages, fmt.Sprintf("%v", msg))
-			}
+			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 
