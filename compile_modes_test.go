@@ -41,7 +41,9 @@ func main() {
 	cfg.AppRootDir = tmp
 	cfg.WebFilesRootRelative = webDirName
 	cfg.WebFilesSubRelative = "public"
-	cfg.Logger = &outputBuffer
+	cfg.Logger = func(message ...any) {
+		fmt.Fprintln(&outputBuffer, message...)
+	}
 
 	w := New(cfg)
 	// Allow tests to enable tinygo detection by setting the private field

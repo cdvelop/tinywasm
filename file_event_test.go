@@ -30,7 +30,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		AppRootDir:           rootDir,
 		WebFilesRootRelative: webDirName,
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			fmt.Fprintln(&outputBuffer, message...)
+		},
 	}
 
 	tinyWasm := New(config)
@@ -40,7 +42,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 
 		// Create main wasm file
 		content := `package main
-		
+
 		func main() {
 			println("Hello TinyWasm!")
 		}`
@@ -114,7 +116,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		config.AppRootDir = rootDir
 		config.WebFilesRootRelative = webDirName
 		config.WebFilesSubRelative = "public"
-		config.Logger = &outputBuffer
+		config.Logger = func(message ...any) {
+			fmt.Fprintln(&outputBuffer, message...)
+		}
 
 		tinyWasm := New(config)
 		// Tests run inside the package; set private tinyGoCompiler explicitly
@@ -155,7 +159,9 @@ func TestUnobservedFiles(t *testing.T) {
 		AppRootDir:           ".",
 		WebFilesRootRelative: "web",
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			fmt.Fprintln(&outputBuffer, message...)
+		},
 	}
 
 	tinyWasm := New(config)

@@ -21,7 +21,9 @@ func TestShouldCompileToWasm(t *testing.T) {
 	config := &Config{
 		WebFilesRootRelative: webDir,
 		WebFilesSubRelative:  "public",
-		Logger:               &outputBuffer,
+		Logger: func(message ...any) {
+			fmt.Fprintln(&outputBuffer, message...)
+		},
 	}
 
 	tinyWasm := New(config)
@@ -101,7 +103,9 @@ func TestCompilerComparison(t *testing.T) {
 			config := &Config{
 				WebFilesRootRelative: webDir,
 				WebFilesSubRelative:  "public",
-				Logger:               &outputBuffer,
+				Logger: func(message ...any) {
+					fmt.Fprintln(&outputBuffer, message...)
+				},
 			}
 
 			tinyWasm := New(config)
