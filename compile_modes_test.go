@@ -127,12 +127,14 @@ func main() {
 			}
 
 			// Step 2: Change compilation mode
-			var progressMsg string
-			w.Change(tc.mode, func(msgs ...any) {
+			// Ensure we always pass a non-nil progress callback and that progressMsg has a default
+			progressMsg := "(no progress message)"
+			progressCb := func(msgs ...any) {
 				if len(msgs) > 0 {
 					progressMsg = fmt.Sprint(msgs...)
 				}
-			})
+			}
+			w.Change(tc.mode, progressCb)
 
 			// Assert that the internal mode has changed
 			if w.Value() != tc.mode {
@@ -187,8 +189,8 @@ func main() {
 
 	// Verify that Go and TinyGo generate different JavaScript
 	if tinygoPresent {
-		// Switch to a TinyGo mode to get TinyGo JavaScript
-		w.Change(w.Config.DebuggingShortcut, nil)
+		// Switch to a TinyGo mode to get TinyGo JavaScript; always pass a progress callback
+		w.Change(w.Config.DebuggingShortcut, func(msgs ...any) {})
 		tinygoJS, err := w.JavascriptForInitializing()
 		if err != nil {
 			t.Errorf("Failed to get TinyGo JavaScript: %v", err)

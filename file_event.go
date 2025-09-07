@@ -1,9 +1,8 @@
 package tinywasm
 
 import (
-	"errors"
+	. "github.com/cdvelop/tinystring"
 	"path"
-	"strings"
 )
 
 // NewFileEvent handles file events for WASM compilation with automatic project detection
@@ -15,7 +14,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 	const e = "NewFileEvent Wasm"
 
 	if filePath == "" {
-		return errors.New(e + "filePath is empty")
+		return Err(e, "filePath is empty")
 	}
 
 	// Auto-detect WASM project base on js file eg: pwa/public/main.js
@@ -36,15 +35,31 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 
 	// Use gobuild for compilation instead of direct exec.Command
 	if w.activeBuilder == nil {
-		return errors.New("builder not initialized")
+		return Err("builder not initialized")
 	}
 
 	// Compile using gobuild
 	if err := w.activeBuilder.CompileProgram(); err != nil {
-		return errors.New("compiling to WebAssembly error: " + err.Error())
+		return Err("compiling to WebAssembly error: ", err)
 	}
 
 	return nil
+}
+
+// ShouldCompileToWasm determines if a file should trigger WASM compilation
+func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
+	// Always compile main.wasm.go
+	if fileName == w.mainInputFile {
+		return true
+	}
+
+	// Any .wasm.go file should trigger compilation
+	if HasSuffix(fileName, ".wasm.go") {
+		return true
+	}
+
+	// All other files should be ignored
+	return false
 }
 
 // MainInputFileRelativePath returns the relative path to the main WASM input file (e.g. "main.wasm.go").
@@ -79,7 +94,7 @@ func (w *TinyWasm) wasmDetectionFuncFromGoFileActive(fileName, filePath string) 
 	}
 
 	// Check for .wasm.go files in modules (another strong indicator)
-	if strings.HasSuffix(fileName, ".wasm.go") {
+	if HasSuffix(fileName, ".wasm.go") {
 		if !w.wasmProject {
 			w.wasmProject = true
 			wasmDetected = true

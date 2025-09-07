@@ -8,6 +8,11 @@ import (
 	. "github.com/cdvelop/tinystring"
 )
 
+// TinyGoCompiler returns if TinyGo compiler should be used (dynamic based on configuration)
+func (w *TinyWasm) TinyGoCompiler() bool {
+	return w.tinyGoCompiler && w.tinyGoInstalled
+}
+
 // requiresTinyGo checks if the mode requires TinyGo compiler
 func (w *TinyWasm) requiresTinyGo(mode string) bool {
 	return mode == w.Config.DebuggingShortcut || mode == w.Config.ProductionShortcut

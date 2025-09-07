@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/cdvelop/gobuild"
-	. "github.com/cdvelop/tinystring"
 )
 
-// initializeBuilder configures 3 builders for WASM compilation modes
-func (w *TinyWasm) initializeBuilder() {
+// builderInit configures 3 builders for WASM compilation modes
+func (w *TinyWasm) builderInit() {
 	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	subFolder := w.Config.WebFilesSubRelative
 	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
@@ -88,21 +87,4 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
 	// 3. Update current mode tracking
 	w.currentMode = mode
-}
-
-// validateMode validates if the provided mode is supported
-func (w *TinyWasm) validateMode(mode string) error {
-	validModes := []string{
-		w.Config.CodingShortcut,     // "c"
-		w.Config.DebuggingShortcut,  // "d"
-		w.Config.ProductionShortcut, // "p"
-	}
-
-	for _, valid := range validModes {
-		if mode == valid {
-			return nil
-		}
-	}
-
-	return Err(D.Invalid, "mode", mode, "valid modes:", validModes)
 }

@@ -66,7 +66,7 @@ func (w *TinyWasm) Value() string {
 
 ### 2. Builder Initialization Issue
 
-In `initializeBuilder()`, all three builders are created as separate `*gobuild.GoBuild` instances with different configurations. However, the pointer comparison in `Value()` may not work as expected.
+In `builderInit()`, all three builders are created as separate `*gobuild.GoBuild` instances with different configurations. However, the pointer comparison in `Value()` may not work as expected.
 
 ### 3. Change() Method Success Messages
 
