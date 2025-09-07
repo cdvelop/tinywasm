@@ -7,8 +7,8 @@ import (
 	"github.com/cdvelop/gobuild"
 )
 
-// builderInit configures 3 builders for WASM compilation modes
-func (w *TinyWasm) builderInit() {
+// builderWasmInit configures 3 builders for WASM compilation modes
+func (w *TinyWasm) builderWasmInit() {
 	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	subFolder := w.Config.WebFilesSubRelative
 	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)

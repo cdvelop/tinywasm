@@ -247,9 +247,9 @@ func (w *TinyWasm) installTinyGo() error {
 
 ### 5. Builder Initialization Refactoring
 
-#### Updated builderInit Method
+#### Updated builderWasmInit Method
 ```go
-func (w *TinyWasm) builderInit() {
+func (w *TinyWasm) builderWasmInit() {
     rootFolder := w.Config.WebFilesRootRelative
     subFolder := w.Config.WebFilesSubRelative
     mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
@@ -416,7 +416,7 @@ func (w *TinyWasm) handleTinyGoMissing(mode string) error {
 ### Phase 1: Core Structure Changes
 1. **Rename builder fields** in TinyWasm struct
 2. **Add compilerMode field** and Config shortcuts
-3. **Update builderInit()** with 3-mode configuration
+3. **Update builderWasmInit()** with 3-mode configuration
 4. **Rename SetTinyGoCompiler() to Change()**
 
 ### Phase 2: DevTUI Integration  

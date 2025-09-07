@@ -36,10 +36,11 @@ type Config struct {
 
 	// AppRootDir specifies the application root directory (absolute).
 	// e.g., "/home/user/project". If empty, defaults to "." to preserve existing behavior.
-	AppRootDir           string
-	WebFilesRootRelative string // root web folder (relative) eg: "web"
-	WebFilesSubRelative  string // subfolder under root (relative) eg: "public"
-	Logger               func(message ...any)
+	AppRootDir                  string
+	WebFilesRootRelative        string // root web folder (relative) eg: "web"
+	WebFilesSubRelative         string // subfolder under root (relative) eg: "public"
+	WebFilesSubRelativeJsOutput string // output path for js files (relative) eg: "theme/js"
+	Logger                      func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
 	// NEW: Shortcut configuration (default: "c", "d", "p")
@@ -102,7 +103,7 @@ func New(c *Config) *TinyWasm {
 	w.verifyTinyGoInstallationStatus()
 
 	// Initialize gobuild instance with WASM-specific configuration
-	w.builderInit()
+	w.builderWasmInit()
 
 	return w
 }
