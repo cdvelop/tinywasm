@@ -1,10 +1,11 @@
 package tinywasm
 
 import (
-	. "github.com/cdvelop/tinystring"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	. "github.com/cdvelop/tinystring"
 )
 
 // wasm_execGoSignatures returns signatures expected in Go's wasm_exec.js
@@ -100,6 +101,10 @@ func (h *TinyWasm) wasmDetectionFuncFromJsFileActive(fileName, extension, filePa
 }
 
 func (h *TinyWasm) wasmDetectionFuncFromJsFileInactive(fileName, extension, filePath, event string) {
+
+}
+
+func (h *TinyWasm) builderJavascriptForInitializing() {
 
 }
 

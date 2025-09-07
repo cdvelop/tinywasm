@@ -105,11 +105,9 @@ func New(c *Config) *TinyWasm {
 	// Initialize gobuild instance with WASM-specific configuration
 	w.builderWasmInit()
 
-	return w
-}
+	w.builderJavascriptForInitializing()
 
-func (w *TinyWasm) SupportedExtensions() []string {
-	return []string{".js", ".go"}
+	return w
 }
 
 // Name returns the name of the WASM project

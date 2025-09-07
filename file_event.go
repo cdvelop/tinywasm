@@ -5,10 +5,14 @@ import (
 	"path"
 )
 
+func (w *TinyWasm) SupportedExtensions() []string {
+	return []string{".go"}
+}
+
 // NewFileEvent handles file events for WASM compilation with automatic project detection
 // fileName: name of the file (e.g., main.wasm.go)
 // extension: file extension (e.g., .go)
-// filePath: full path to the file (e.g., web/public/wasm/main.wasm.go)
+// filePath: full path to the file (e.g., ./home/userName/ProjectName/web/public/main.wasm.go)
 // event: type of file event (e.g., create, remove, write, rename)
 func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) error {
 	const e = "NewFileEvent Wasm"
@@ -29,7 +33,8 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 		// File should be ignored (backend file or unknown type)
 		return nil
 	}
-	if event != "write" && event != "create" {
+
+	if event != "write" && event != "create" || extension != ".go" {
 		return nil
 	}
 
