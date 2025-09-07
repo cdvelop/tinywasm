@@ -4,7 +4,52 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	. "github.com/cdvelop/tinystring"
 )
+
+// requiresTinyGo checks if the mode requires TinyGo compiler
+func (w *TinyWasm) requiresTinyGo(mode string) bool {
+	return mode == w.Config.DebuggingShortcut || mode == w.Config.ProductionShortcut
+}
+
+// installTinyGo placeholder for future TinyGo installation
+func (w *TinyWasm) installTinyGo() error {
+	return Err("TinyGo", "installation", D.Not, "implemented")
+}
+
+// handleTinyGoMissing handles missing TinyGo installation
+func (w *TinyWasm) handleTinyGoMissing() error {
+	// installTinyGo always returns a non-nil error (not implemented)
+	err := w.installTinyGo()
+	return Err("Error:", D.Cannot, "install TinyGo:", err.Error())
+}
+
+// verifyTinyGoInstallationStatus checks and caches TinyGo installation status
+func (w *TinyWasm) verifyTinyGoInstallationStatus() {
+	if err := w.VerifyTinyGoInstallation(); err != nil {
+		w.tinyGoInstalled = false
+		if w.Logger != nil {
+			w.Logger("Warning: TinyGo not available:", err)
+		}
+	} else {
+		w.tinyGoInstalled = true
+
+		// If TinyGo is installed, check its version
+		version, err := w.GetTinyGoVersion()
+		if err != nil {
+			w.tinyGoInstalled = false
+			if w.Logger != nil {
+				w.Logger("Warning: TinyGo version check failed:", err)
+			}
+		} else {
+			w.tinyGoInstalled = true
+			if w.Logger != nil {
+				w.Logger("Info: TinyGo installation verified", version)
+			}
+		}
+	}
+}
 
 // VerifyTinyGoProjectCompatibility checks if the project is compatible with TinyGo compilation
 func (w *TinyWasm) VerifyTinyGoProjectCompatibility() {

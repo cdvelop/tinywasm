@@ -1,17 +1,10 @@
 package tinywasm
 
 import (
-	"errors"
-	"fmt"
 	"os"
-	"os/exec"
 	"path"
-	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/cdvelop/gobuild"
-
 	. "github.com/cdvelop/tinystring"
 )
 
@@ -141,136 +134,6 @@ func (w *TinyWasm) TinyGoCompiler() bool {
 	return w.tinyGoCompiler && w.tinyGoInstalled
 }
 
-// initializeBuilder configures 3 builders for WASM compilation modes
-func (w *TinyWasm) initializeBuilder() {
-	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
-	subFolder := w.Config.WebFilesSubRelative
-	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
-	outFolder := path.Join(rootFolder, subFolder)
-
-	// Base configuration shared by all builders
-	baseConfig := gobuild.Config{
-		MainInputFileRelativePath: mainInputFileRelativePath,
-		OutName:                   "main", // Output will be main.wasm
-		Extension:                 ".wasm",
-		OutFolderRelativePath:     outFolder,
-		Logger:                    w.Logger,
-		Timeout:                   60 * time.Second, // 1 minute for all modes
-		Callback:                  w.Callback,
-	}
-
-	// Configure Coding builder (Go standard)
-	codingConfig := baseConfig
-	codingConfig.Command = "go"
-	codingConfig.Env = []string{"GOOS=js", "GOARCH=wasm"}
-	codingConfig.CompilingArguments = func() []string {
-		args := []string{"-tags", "dev"}
-		if w.CompilingArguments != nil {
-			args = append(args, w.CompilingArguments()...)
-		}
-		return args
-	}
-	w.builderCoding = gobuild.New(&codingConfig)
-
-	// Configure Debug builder (TinyGo debug-friendly)
-	debugConfig := baseConfig
-	debugConfig.Command = "tinygo"
-	debugConfig.CompilingArguments = func() []string {
-		args := []string{"-target", "wasm", "-opt=1"} // Keep debug symbols
-		if w.CompilingArguments != nil {
-			args = append(args, w.CompilingArguments()...)
-		}
-		return args
-	}
-	w.builderDebug = gobuild.New(&debugConfig)
-
-	// Configure Production builder (TinyGo optimized)
-	prodConfig := baseConfig
-	prodConfig.Command = "tinygo"
-	prodConfig.CompilingArguments = func() []string {
-		args := []string{"-target", "wasm", "-opt=z", "-no-debug", "-panic=trap"}
-		if w.CompilingArguments != nil {
-			args = append(args, w.CompilingArguments()...)
-		}
-		return args
-	}
-	w.builderProduction = gobuild.New(&prodConfig)
-
-	// Set initial mode and active builder (default to coding mode)
-	w.activeBuilder = w.builderCoding // Default: fast development
-}
-
-// getCurrentMode determines current mode based on activeBuilder
-func (w *TinyWasm) getCurrentMode() string {
-	switch w.activeBuilder {
-	case w.builderCoding:
-		return w.Config.CodingShortcut // "c"
-	case w.builderDebug:
-		return w.Config.DebuggingShortcut // "d"
-	case w.builderProduction:
-		return w.Config.ProductionShortcut // "p"
-	default:
-		return w.Config.CodingShortcut // fallback
-	}
-}
-
-// updateCurrentBuilder sets the activeBuilder based on mode and cancels ongoing operations
-func (w *TinyWasm) updateCurrentBuilder(mode string) {
-	// 1. Cancel any ongoing compilation
-	if w.activeBuilder != nil {
-		w.activeBuilder.Cancel()
-	}
-
-	// 2. Set activeBuilder based on mode
-	switch mode {
-	case w.Config.CodingShortcut: // "c"
-		w.activeBuilder = w.builderCoding
-	case w.Config.DebuggingShortcut: // "d"
-		w.activeBuilder = w.builderDebug
-	case w.Config.ProductionShortcut: // "p"
-		w.activeBuilder = w.builderProduction
-	default:
-		w.activeBuilder = w.builderCoding // fallback to coding mode
-	}
-
-	// 3. Update current mode tracking
-	w.currentMode = mode
-}
-
-// validateMode validates if the provided mode is supported
-func (w *TinyWasm) validateMode(mode string) error {
-	validModes := []string{
-		w.Config.CodingShortcut,     // "c"
-		w.Config.DebuggingShortcut,  // "d"
-		w.Config.ProductionShortcut, // "p"
-	}
-
-	for _, valid := range validModes {
-		if mode == valid {
-			return nil
-		}
-	}
-
-	return Err(D.Invalid, "mode", mode, "valid modes:", validModes)
-}
-
-// requiresTinyGo checks if the mode requires TinyGo compiler
-func (w *TinyWasm) requiresTinyGo(mode string) bool {
-	return mode == w.Config.DebuggingShortcut || mode == w.Config.ProductionShortcut
-}
-
-// installTinyGo placeholder for future TinyGo installation
-func (w *TinyWasm) installTinyGo() error {
-	return Err("TinyGo", "installation", D.Not, "implemented")
-}
-
-// handleTinyGoMissing handles missing TinyGo installation
-func (w *TinyWasm) handleTinyGoMissing() error {
-	// installTinyGo always returns a non-nil error (not implemented)
-	err := w.installTinyGo()
-	return Err("Error:", D.Cannot, "install TinyGo:", err.Error())
-}
-
 // getSuccessMessage returns appropriate success message for mode
 func (w *TinyWasm) getSuccessMessage(mode string) string {
 	var msg string
@@ -307,18 +170,14 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	// Validate mode
 	if err := w.validateMode(newValue); err != nil {
-		if progress != nil {
-			progress(err)
-		}
+		progress(err)
 		return
 	}
 
 	// Check TinyGo installation for debug/production modes
 	if w.requiresTinyGo(newValue) && !w.tinyGoInstalled {
-		if progress != nil {
-			// handleTinyGoMissing returns an error with descriptive message
-			progress(w.handleTinyGoMissing().Error())
-		}
+		// handleTinyGoMissing returns an error with descriptive message
+		progress(w.handleTinyGoMissing().Error())
 		return
 	}
 
@@ -330,9 +189,7 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
 	if _, err := os.Stat(mainWasmPath); err != nil {
 		// File doesn't exist, just report success message without compilation
-		if progress != nil {
-			progress(w.getSuccessMessage(newValue))
-		}
+		progress(w.getSuccessMessage(newValue))
 		return
 	}
 
@@ -343,16 +200,12 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 		if warningMsg == "" {
 			warningMsg = "Warning: auto compilation failed: " + err.Error()
 		}
-		if progress != nil {
-			progress(warningMsg)
-		}
+		progress(warningMsg)
 		return
 	}
 
 	// Report success
-	if progress != nil {
-		progress(w.getSuccessMessage(newValue))
-	}
+	progress(w.getSuccessMessage(newValue))
 }
 
 // === DevTUI FieldHandler Interface Implementation ===
@@ -374,131 +227,18 @@ func (w *TinyWasm) Value() string {
 // recompileMainWasm recompiles the main WASM file if it exists
 func (w *TinyWasm) recompileMainWasm() error {
 	if w.activeBuilder == nil {
-		return errors.New("builder not initialized")
+		return Err("builder not initialized")
 	}
 	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
 
 	// Check if main.wasm.go exists
 	if _, err := os.Stat(mainWasmPath); err != nil {
-		return errors.New("main WASM file not found: " + mainWasmPath)
+		return Err("main WASM file not found:", mainWasmPath)
 	}
 
 	// Use gobuild to compile
 	return w.activeBuilder.CompileProgram()
-}
-
-// verifyTinyGoInstallationStatus checks and caches TinyGo installation status
-func (w *TinyWasm) verifyTinyGoInstallationStatus() {
-	if err := w.VerifyTinyGoInstallation(); err != nil {
-		w.tinyGoInstalled = false
-		if w.Logger != nil {
-			w.Logger("Warning: TinyGo not available:", err)
-		}
-	} else {
-		w.tinyGoInstalled = true
-
-		// If TinyGo is installed, check its version
-		version, err := w.GetTinyGoVersion()
-		if err != nil {
-			w.tinyGoInstalled = false
-			if w.Logger != nil {
-				w.Logger("Warning: TinyGo version check failed:", err)
-			}
-		} else {
-			w.tinyGoInstalled = true
-			if w.Logger != nil {
-				w.Logger("Info: TinyGo installation verified", version)
-			}
-		}
-	}
-}
-
-// GetWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file
-func (w *TinyWasm) GetWasmExecJsPathTinyGo() (string, error) {
-	// Method 1: Try standard lib location pattern
-	libPaths := []string{
-		"/usr/local/lib/tinygo/targets/wasm_exec.js",
-		"/opt/tinygo/targets/wasm_exec.js",
-	}
-
-	for _, path := range libPaths {
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-	}
-
-	// Method 2: Derive from tinygo executable path
-	tinygoPath, err := exec.LookPath("tinygo")
-	if err != nil {
-		return "", fmt.Errorf("tinygo executable not found: %v", err)
-	}
-
-	// Get directory where tinygo is located
-	tinyGoDir := filepath.Dir(tinygoPath)
-
-	// Common installation patterns
-	patterns := []string{
-		// For /usr/local/bin/tinygo -> /usr/local/lib/tinygo/targets/wasm_exec.js
-		filepath.Join(filepath.Dir(tinyGoDir), "lib", "tinygo", "targets", "wasm_exec.js"),
-		// For /usr/bin/tinygo -> /usr/lib/tinygo/targets/wasm_exec.js
-		filepath.Join(filepath.Dir(tinyGoDir), "lib", "tinygo", "targets", "wasm_exec.js"),
-		// For portable installation: remove bin and add targets
-		filepath.Join(filepath.Dir(tinyGoDir), "targets", "wasm_exec.js"),
-	}
-
-	for _, wasmExecPath := range patterns {
-		if _, err := os.Stat(wasmExecPath); err == nil {
-			return wasmExecPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("TinyGo wasm_exec.js not found. Searched paths: %v", append(libPaths, patterns...))
-}
-
-// GetWasmExecJsPathGo returns the path to Go's wasm_exec.js file
-func (w *TinyWasm) GetWasmExecJsPathGo() (string, error) {
-	// Method 1: Try GOROOT environment variable (most reliable)
-	goRoot := os.Getenv("GOROOT")
-	if goRoot != "" {
-		patterns := []string{
-			filepath.Join(goRoot, "misc", "wasm", "wasm_exec.js"), // Traditional location
-			filepath.Join(goRoot, "lib", "wasm", "wasm_exec.js"),  // Modern location
-		}
-		for _, wasmExecPath := range patterns {
-			if _, err := os.Stat(wasmExecPath); err == nil {
-				return wasmExecPath, nil
-			}
-		}
-	}
-
-	// Method 2: Derive from go executable path
-	goPath, err := exec.LookPath("go")
-	if err != nil {
-		return "", fmt.Errorf("go executable not found: %v", err)
-	}
-
-	// Get installation directory (parent of bin directory)
-	goDir := filepath.Dir(goPath)
-
-	// Remove bin directory from path (cross-platform)
-	if filepath.Base(goDir) == "bin" {
-		goDir = filepath.Dir(goDir)
-	}
-
-	// Try multiple patterns for different Go versions
-	patterns := []string{
-		filepath.Join(goDir, "misc", "wasm", "wasm_exec.js"), // Traditional location
-		filepath.Join(goDir, "lib", "wasm", "wasm_exec.js"),  // Modern location (Go 1.21+)
-	}
-
-	for _, wasmExecPath := range patterns {
-		if _, err := os.Stat(wasmExecPath); err == nil {
-			return wasmExecPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("go wasm_exec.js not found. Searched: GOROOT=%s, patterns=%v", goRoot, patterns)
 }
 
 // (Deprecated field FrontendPrefix removed) frontend detection is no longer supported.
@@ -511,28 +251,10 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 	}
 
 	// Any .wasm.go file should trigger compilation
-	if strings.HasSuffix(fileName, ".wasm.go") {
+	if HasSuffix(fileName, ".wasm.go") {
 		return true
 	}
 
 	// All other files should be ignored
 	return false
-}
-
-// LogAdapter adapts our logger function to an io.Writer interface
-type LogAdapter struct {
-	logFunc func(message ...any)
-}
-
-// NewLogAdapter creates a new LogAdapter
-func NewLogAdapter(logFunc func(message ...any)) *LogAdapter {
-	return &LogAdapter{logFunc: logFunc}
-}
-
-// Write implements the io.Writer interface
-func (a *LogAdapter) Write(p []byte) (n int, err error) {
-	if a.logFunc != nil {
-		a.logFunc(string(p))
-	}
-	return len(p), nil
 }
