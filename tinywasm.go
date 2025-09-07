@@ -2,7 +2,6 @@ package tinywasm
 
 import (
 	"github.com/cdvelop/gobuild"
-	. "github.com/cdvelop/tinystring"
 )
 
 // TinyWasm provides WebAssembly compilation capabilities with 3-mode compiler selection
@@ -124,37 +123,6 @@ func (w *TinyWasm) WasmProjectTinyGoJsUse() (bool, bool) {
 	useTinyGo := w.requiresTinyGo(currentMode) && w.tinyGoInstalled
 
 	return w.wasmProject, useTinyGo
-}
-
-// getSuccessMessage returns appropriate success message for mode
-func (w *TinyWasm) getSuccessMessage(mode string) string {
-	var msg string
-	switch mode {
-	case w.Config.CodingShortcut:
-		msg = Translate("Switching", "to", "coding", "mode").String()
-	case w.Config.DebuggingShortcut:
-		msg = Translate("Switching", "to", "debugging", "mode").String()
-	case w.Config.ProductionShortcut:
-		msg = Translate("Switching", "to", "production", "mode").String()
-	default:
-		msg = Translate(D.Invalid, "mode").String()
-	}
-
-	// Fallback if Translate returns empty string
-	if msg == "" {
-		switch mode {
-		case w.Config.CodingShortcut:
-			msg = "Switching to coding mode"
-		case w.Config.DebuggingShortcut:
-			msg = "Switching to debugging mode"
-		case w.Config.ProductionShortcut:
-			msg = "Switching to production mode"
-		default:
-			msg = "Invalid mode"
-		}
-	}
-
-	return msg
 }
 
 // === DevTUI FieldHandler Interface Implementation ===
