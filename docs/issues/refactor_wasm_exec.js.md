@@ -163,9 +163,10 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
     return false
 }
 
-// ensureWasmExecJsInOutput creates wasm_exec.js in output directory ONLY if it doesn't exist
-// This respects existing user customizations and creates only when needed
-func (w *TinyWasm) ensureWasmExecJsInOutput() error {
+// writeOrReplaceWasmExecJsOutput writes wasm_exec.js into the output directory and ALWAYS
+// overwrites any existing file. This changes the previous "create-only" behavior to ensure
+// the generated JS initialization reflects the current compiler mode and configuration.
+func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() bool {
     outputPath := w.getWasmExecJsOutputPath()
     
     // Check if file already exists - do not overwrite
@@ -195,14 +196,14 @@ func (w *TinyWasm) ensureWasmExecJsInOutput() error {
         return nil // Non-fatal, just log
     }
     
-    // Copy file to output location
+    // Copy file to output location (overwrite existing)
     if err := w.copyFile(sourcePath, outputPath); err != nil {
         w.Logger("Failed to copy wasm_exec.js:", err)
-        return nil // Non-fatal, just log
+        return true // Non-fatal, just log but indicate we processed the project
     }
-    
-    w.Logger("Created wasm_exec.js in output directory")
-    return nil
+
+    w.Logger("Wrote/overwrote wasm_exec.js in output directory")
+    return true
 }
 
 func (w *TinyWasm) copyFile(src, dst string) error {
@@ -226,8 +227,8 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
     
     // Ensure wasm_exec.js is available before compilation (only if .wasm.go files exist)
     if w.wasmProject {
-        if err := w.ensureWasmExecJsInOutput(); err != nil {
-            // Error already logged in ensureWasmExecJsInOutput, continue execution
+        if err := w.writeOrReplaceWasmExecJsOutput(); err != nil {
+            // Error already logged in writeOrReplaceWasmExecJsOutput, continue execution
         }
         
         // Clear JavaScript cache to force regeneration with new mode
@@ -270,7 +271,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 ### Phase 2: Event Handling & File Management ✅  
 1. **Simplify NewFileEvent()** to handle only Go file compilation triggers
 2. **Remove all JS event handling** from NewFileEvent (no longer needed)
-3. **Update Change.go** to call `ensureWasmExecJsInOutput()` before compilation
+3. **Update Change.go** to call `writeOrReplaceWasmExecJsOutput()` before compilation
 4. **Implement non-overwriting file creation** (respect existing customizations)
 
 ### Phase 3: Testing & Validation ✅
@@ -282,7 +283,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
    - Test detection from `.wasm.go` files
    - Test default configuration handling
 3. **Add file management tests**:
-   - Test `ensureWasmExecJsInOutput()` creates files when needed
+    - Test `writeOrReplaceWasmExecJsOutput()` writes/overwrites files as expected
    - Test it doesn't overwrite existing files
    - Test Change.go integration
 

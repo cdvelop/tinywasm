@@ -1,7 +1,12 @@
 package tinywasm
 
 import (
+	"os"
+	"path"
+	"path/filepath"
+
 	"github.com/cdvelop/gobuild"
+	. "github.com/cdvelop/tinystring"
 )
 
 // TinyWasm provides WebAssembly compilation capabilities with 3-mode compiler selection
@@ -25,10 +30,6 @@ type TinyWasm struct {
 
 	goWasmJsCache     string
 	tinyGoWasmJsCache string
-
-	// Function pointer for efficient WASM project detection
-	wasmDetectionFuncFromGoFile func(string, string) // (fileName, filePath)
-	wasmDetectionFuncFromJsFile func(fileName, extension, filePath, event string)
 }
 
 // Config holds configuration for WASM compilation
@@ -56,10 +57,15 @@ type Config struct {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
 	return &Config{
-		AppRootDir:         ".",
-		CodingShortcut:     "c",
-		DebuggingShortcut:  "d",
-		ProductionShortcut: "p",
+		AppRootDir:                  ".",
+		WebFilesRootRelative:        "web",
+		WebFilesSubRelativeJsOutput: "theme/js",
+		CodingShortcut:              "c",
+		DebuggingShortcut:           "d",
+		ProductionShortcut:          "p",
+		Logger: func(message ...any) {
+			// Default logger: do nothing (silent operation)
+		},
 	}
 }
 
@@ -73,6 +79,27 @@ func New(c *Config) *TinyWasm {
 	}
 	if c.AppRootDir == "" {
 		c.AppRootDir = "."
+	}
+
+	// Set default logger if not provided
+	if c.Logger == nil {
+		c.Logger = func(message ...any) {
+			// Default logger: do nothing (silent operation)
+		}
+	}
+
+	// Ensure shortcut defaults are set even when a partial config is passed
+	// Use NewConfig() as the authoritative source of defaults and copy any
+	// missing shortcut values from it.
+	defaults := NewConfig()
+	if c.CodingShortcut == "" {
+		c.CodingShortcut = defaults.CodingShortcut
+	}
+	if c.DebuggingShortcut == "" {
+		c.DebuggingShortcut = defaults.DebuggingShortcut
+	}
+	if c.ProductionShortcut == "" {
+		c.ProductionShortcut = defaults.ProductionShortcut
 	}
 
 	w := &TinyWasm{
@@ -92,12 +119,10 @@ func New(c *Config) *TinyWasm {
 		w.currentMode = w.Config.CodingShortcut
 	}
 
-	// Initialize WASM detection function pointer (starts active)
-
-	// FROM JS FILE
-	w.wasmDetectionFuncFromJsFile = w.wasmDetectionFuncFromJsFileActive
-	// FROM GO FILE
-	w.wasmDetectionFuncFromGoFile = w.wasmDetectionFuncFromGoFileActive
+	// Set default for WebFilesSubRelativeJsOutput if not configured
+	if w.Config.WebFilesSubRelativeJsOutput == "" {
+		w.Config.WebFilesSubRelativeJsOutput = "theme/js"
+	}
 
 	// Check TinyGo installation status
 	w.verifyTinyGoInstallationStatus()
@@ -105,7 +130,8 @@ func New(c *Config) *TinyWasm {
 	// Initialize gobuild instance with WASM-specific configuration
 	w.builderWasmInit()
 
-	w.builderJavascriptForInitializing()
+	// Perform one-time detection at the end
+	w.detectProjectConfiguration()
 
 	return w
 }
@@ -138,4 +164,174 @@ func (w *TinyWasm) Value() string {
 		return w.Config.CodingShortcut // Default to coding mode
 	}
 	return w.currentMode
+}
+
+// detectProjectConfiguration performs one-time detection during initialization
+func (w *TinyWasm) detectProjectConfiguration() {
+	// Priority 1: Check for existing wasm_exec.js (definitive source)
+	if w.detectFromExistingWasmExecJs() {
+		w.Logger("DEBUG: WASM project detected from existing wasm_exec.js")
+		return
+	}
+
+	// Priority 2: Check for .wasm.go files (confirms WASM project)
+	if w.detectFromGoFiles() {
+		w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
+		w.wasmProject = true
+		w.tinyGoCompiler = false
+		w.currentMode = w.Config.CodingShortcut
+
+		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
+		// This writes the initialization JS so downstream flows (tests/compile) have it.
+		w.wasmProjectWriteOrReplaceWasmExecJsOutput()
+	}
+
+	w.Logger("No WASM project detected")
+}
+
+// detectFromExistingWasmExecJs checks for existing wasm_exec.js file
+func (w *TinyWasm) detectFromExistingWasmExecJs() bool {
+	wasmExecPath := w.getWasmExecJsOutputPath()
+
+	// Check if file exists
+	if _, err := os.Stat(wasmExecPath); err != nil {
+		return false
+	}
+
+	// Analyze content to determine compiler type
+	return w.analyzeWasmExecJsContent(wasmExecPath)
+}
+
+// getWasmExecJsOutputPath returns the output path for wasm_exec.js
+func (w *TinyWasm) getWasmExecJsOutputPath() string {
+	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+}
+
+// analyzeWasmExecJsContent analyzes existing wasm_exec.js to determine compiler type
+func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		w.Logger("Error reading wasm_exec.js for detection:", err)
+		return false
+	}
+
+	content := string(data)
+
+	// Count signatures (reuse existing logic from wasmDetectionFuncFromJsFileActive)
+	goCount := 0
+	for _, s := range wasm_execGoSignatures() {
+		if Contains(content, s) {
+			goCount++
+		}
+	}
+
+	tinyCount := 0
+	for _, s := range wasm_execTinyGoSignatures() {
+		if Contains(content, s) {
+			tinyCount++
+		}
+	}
+
+	// Determine configuration based on signatures
+	if tinyCount > goCount && tinyCount > 0 {
+		w.tinyGoCompiler = true
+		w.wasmProject = true
+		w.Logger("Detected TinyGo compiler from wasm_exec.js")
+		return true
+	} else if goCount > tinyCount && goCount > 0 {
+		w.tinyGoCompiler = false
+		w.wasmProject = true
+		w.Logger("Detected Go compiler from wasm_exec.js")
+		return true
+	} else if tinyCount > 0 || goCount > 0 {
+		// Single-sided detection
+		w.tinyGoCompiler = tinyCount > 0
+		w.wasmProject = true
+		compiler := map[bool]string{true: "TinyGo", false: "Go"}[w.tinyGoCompiler]
+		w.Logger("Detected WASM project, compiler:", compiler)
+		return true
+	}
+
+	w.Logger("No valid WASM signatures found in wasm_exec.js")
+	return false
+}
+
+// detectFromGoFiles checks for .wasm.go files to confirm WASM project
+func (w *TinyWasm) detectFromGoFiles() bool {
+	// Walk the project directory to find .wasm.go files
+	wasmFilesFound := false
+
+	err := filepath.Walk(w.Config.AppRootDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Continue walking even if there's an error
+		}
+
+		if info.IsDir() {
+			return nil // Continue walking directories
+		}
+
+		fileName := info.Name()
+
+		// Check for main.wasm.go file (strong indicator of WASM project)
+		if fileName == w.mainInputFile {
+			wasmFilesFound = true
+			return filepath.SkipAll // Found main file, can stop walking
+		}
+
+		// Check for .wasm.go files in modules (another strong indicator)
+		if HasSuffix(fileName, ".wasm.go") {
+			wasmFilesFound = true
+			return filepath.SkipAll // Found wasm file, can stop walking
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		w.Logger("Error walking directory for WASM file detection:", err)
+		return false
+	}
+
+	return wasmFilesFound
+}
+
+// wasmProjectWriteOrReplaceWasmExecJsOutput writes (or overwrites) the
+// wasm_exec.js initialization file into the configured web output folder for
+// WASM projects. If the receiver is not a WASM project the function returns
+// false immediately. On success or on any write attempt it returns true; any
+// filesystem or generation errors are logged via w.Logger and treated as
+// non-fatal so callers can continue their workflow.
+func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
+	// Only perform actions for recognized WASM projects
+	if !w.wasmProject {
+		w.Logger("DEBUG: Not a WASM project, skipping wasm_exec.js write")
+		return
+	}
+
+	outputPath := w.getWasmExecJsOutputPath()
+
+	w.Logger("DEBUG: Writing/overwriting wasm_exec.js to output path:", outputPath)
+
+	// Create output directory if it doesn't exist
+	outputDir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		w.Logger("Failed to create output directory:", err)
+		return // We did attempt the operation (project), but treat errors as non-fatal
+	}
+
+	// Get the complete JavaScript initialization code (includes WASM setup)
+	jsContent, err := w.JavascriptForInitializing()
+	if err != nil {
+		w.Logger("Failed to generate JavaScript initialization code:", err)
+		return
+	}
+
+	// Write the complete JavaScript to output location, always overwrite
+	if err := os.WriteFile(outputPath, []byte(jsContent), 0644); err != nil {
+		w.Logger("Failed to write JavaScript initialization file:", err)
+		return
+	}
+
+	w.Logger(" DEBUG: Wrote/overwrote JavaScript initialization file in output directory")
+	return
 }

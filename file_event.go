@@ -1,8 +1,9 @@
 package tinywasm
 
 import (
-	. "github.com/cdvelop/tinystring"
 	"path"
+
+	. "github.com/cdvelop/tinystring"
 )
 
 func (w *TinyWasm) SupportedExtensions() []string {
@@ -21,24 +22,25 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 		return Err(e, "filePath is empty")
 	}
 
-	// Auto-detect WASM project base on js file eg: pwa/public/main.js
-	w.wasmDetectionFuncFromJsFile(fileName, extension, filePath, event)
-
-	// Auto-detect WASM project based on file structure
-	w.wasmDetectionFuncFromGoFile(fileName, filePath)
-
 	w.Logger(extension, event, "...", filePath)
-	// Check if this file should trigger WASM compilation
+
+	// Only process Go files for compilation triggers
+	if extension != ".go" {
+		return nil
+	}
+
+	// Only process write/create events
+	if event != "write" && event != "create" {
+		return nil
+	}
+
+	// Check if this file should trigger compilation
 	if !w.ShouldCompileToWasm(fileName, filePath) {
 		// File should be ignored (backend file or unknown type)
 		return nil
 	}
 
-	if event != "write" && event != "create" || extension != ".go" {
-		return nil
-	}
-
-	// Use gobuild for compilation instead of direct exec.Command
+	// Compile using current active builder
 	if w.activeBuilder == nil {
 		return Err("builder not initialized")
 	}
@@ -84,36 +86,4 @@ func (w *TinyWasm) MainOutputFileAbsolutePath() string {
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
 func (w *TinyWasm) UnobservedFiles() []string {
 	return w.activeBuilder.UnobservedFiles()
-}
-
-// wasmDetectionFuncFromGoFileActive automatically detects if this is a WASM project and configures VS Code
-func (w *TinyWasm) wasmDetectionFuncFromGoFileActive(fileName, filePath string) {
-	wasmDetected := false
-
-	// Check for main.wasm.go file (strong indicator of WASM project)
-	if fileName == w.mainInputFile {
-		if !w.wasmProject {
-			w.wasmProject = true
-			wasmDetected = true
-		}
-	}
-
-	// Check for .wasm.go files in modules (another strong indicator)
-	if HasSuffix(fileName, ".wasm.go") {
-		if !w.wasmProject {
-			w.wasmProject = true
-			wasmDetected = true
-		}
-	}
-
-	// If WASM project detected, configure VS Code and switch to inactive function
-	if wasmDetected {
-		w.VisualStudioCodeWasmEnvConfig()
-		w.wasmDetectionFuncFromGoFile = w.wasmDetectionFuncFromGoFileInactive
-	}
-}
-
-// wasmDetectionFuncFromGoFileInactive is a no-op function used after VS Code is configured
-func (w *TinyWasm) wasmDetectionFuncFromGoFileInactive(fileName, filePath string) {
-	// Do nothing - VS Code already configured
 }

@@ -27,6 +27,10 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	// Update active builder
 	w.updateCurrentBuilder(newValue)
 
+	// Ensure wasm_exec.js is available before compilation. The method will
+	// internally verify whether this is a WASM project and perform the write.
+	w.wasmProjectWriteOrReplaceWasmExecJsOutput()
+
 	// Check if main WASM file exists before attempting compilation
 	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	mainWasmPath := path.Join(rootFolder, w.mainInputFile)
