@@ -1,9 +1,11 @@
 package tinywasm
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	. "github.com/cdvelop/tinystring"
 )
@@ -28,8 +30,8 @@ func wasm_execTinyGoSignatures() []string {
 	}
 }
 
-// JavascriptForInitializing returns the JavaScript code needed to initialize WASM
-func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
+// javascriptForInitializing returns the JavaScript code needed to initialize WASM
+func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
 	// Load wasm js code
 	wasmType, TinyGoCompiler := h.WasmProjectTinyGoJsUse()
 	if !wasmType {
@@ -61,6 +63,14 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 
 	stringWasmJs := string(wasmJs)
 
+	// Prepend a minimal header comment with current mode so we can
+	// detect what mode was used last time the wasm_exec.js was emitted.
+	// Keep it minimal to avoid introducing differences in generated output.
+	// Capture the mode at generation time to ensure stability across cache operations
+	currentModeAtGeneration := h.Value()
+	header := fmt.Sprintf("// TinyWasm: mode=%s\n", currentModeAtGeneration)
+	stringWasmJs = header + stringWasmJs
+
 	// Verify activeBuilder is initialized before accessing it
 	if h.activeBuilder == nil {
 		return "", Errf("activeBuilder not initialized")
@@ -74,14 +84,34 @@ func (h *TinyWasm) JavascriptForInitializing() (js string, err error) {
 		});
 	`
 
+	// Normalize JS output to avoid accidental differences between cached and
+	// freshly-generated content (line endings, trailing spaces).
+	normalized := normalizeJs(stringWasmJs)
+
 	// Store in appropriate cache
 	if TinyGoCompiler {
-		h.tinyGoWasmJsCache = stringWasmJs
+		h.tinyGoWasmJsCache = normalized
 	} else {
-		h.goWasmJsCache = stringWasmJs
+		h.goWasmJsCache = normalized
 	}
 
-	return stringWasmJs, nil
+	return normalized, nil
+}
+
+// normalizeJs applies deterministic normalization to JS content so cached
+// and regenerated outputs are identical: convert CRLF to LF and trim trailing
+// whitespace from each line.
+func normalizeJs(s string) string {
+	// Normalize CRLF -> LF
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+
+	// Trim trailing whitespace on each line
+	lines := strings.Split(s, "\n")
+	for i, L := range lines {
+		lines[i] = strings.TrimRight(L, " \t")
+	}
+	return strings.Join(lines, "\n")
 }
 
 // ClearJavaScriptCache clears both cached JavaScript strings to force regeneration
@@ -175,4 +205,44 @@ func (w *TinyWasm) GetWasmExecJsPathGo() (string, error) {
 	}
 
 	return "", Errf("go wasm_exec.js not found. Searched: GOROOT=%s, patterns=%v", goRoot, patterns)
+}
+
+// getModeFromWasmExecJsHeader extracts the mode shortcut from a wasm_exec.js
+// header comment emitted by javascriptForInitializing. The header format is
+// expected to be: "// TinyWasm: <message>" where <message> is the success
+// message returned by getSuccessMessage. We return the matching shortcut and true
+// when a match is found.
+func (h *TinyWasm) getModeFromWasmExecJsHeader(content string) (string, bool) {
+	const prefix = "// TinyWasm: "
+
+	// Only check start of file for header
+	firstLine := content
+	if idx := strings.Index(content, "\n"); idx != -1 {
+		firstLine = content[:idx]
+	}
+
+	if !strings.HasPrefix(firstLine, prefix) {
+		return "", false
+	}
+
+	rest := strings.TrimSpace(strings.TrimPrefix(firstLine, prefix))
+
+	// look for mode=<shortcut> in rest
+	lower := strings.ToLower(rest)
+	if mIdx := strings.Index(lower, "mode="); mIdx != -1 {
+		after := rest[mIdx+len("mode="):]
+		// stop at semicolon or whitespace
+		end := strings.IndexAny(after, "; \t")
+		var modeVal string
+		if end == -1 {
+			modeVal = strings.TrimSpace(after)
+		} else {
+			modeVal = strings.TrimSpace(after[:end])
+		}
+		if modeVal != "" {
+			return modeVal, true
+		}
+	}
+
+	return "", false
 }

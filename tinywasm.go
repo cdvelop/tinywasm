@@ -236,23 +236,48 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 	if tinyCount > goCount && tinyCount > 0 {
 		w.tinyGoCompiler = true
 		w.wasmProject = true
-		w.Logger("Detected TinyGo compiler from wasm_exec.js")
-		return true
+		w.Logger("DEBUG: Detected TinyGo compiler from wasm_exec.js")
 	} else if goCount > tinyCount && goCount > 0 {
 		w.tinyGoCompiler = false
 		w.wasmProject = true
-		w.Logger("Detected Go compiler from wasm_exec.js")
-		return true
+		w.Logger("DEBUG: Detected Go compiler from wasm_exec.js")
 	} else if tinyCount > 0 || goCount > 0 {
 		// Single-sided detection
 		w.tinyGoCompiler = tinyCount > 0
 		w.wasmProject = true
 		compiler := map[bool]string{true: "TinyGo", false: "Go"}[w.tinyGoCompiler]
-		w.Logger("Detected WASM project, compiler:", compiler)
-		return true
+		w.Logger("DEBUG: Detected WASM project, compiler:", compiler)
+	} else {
+		w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
+		return false
 	}
 
-	w.Logger("No valid WASM signatures found in wasm_exec.js")
+	// After detecting runtime signatures, try to recover last-used mode from header
+	// This gives priority to the user's explicit mode choice over signature defaults
+	if mode, ok := w.getModeFromWasmExecJsHeader(content); ok {
+		w.currentMode = mode
+		// Set activeBuilder according to recovered mode
+		if w.requiresTinyGo(mode) {
+			w.activeBuilder = w.builderDebug
+		} else {
+			w.activeBuilder = w.builderCoding
+		}
+		w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
+	} else {
+		// No header found, use signature-based defaults
+		if w.tinyGoCompiler {
+			w.activeBuilder = w.builderDebug
+			w.currentMode = w.Config.DebuggingShortcut
+		} else {
+			w.activeBuilder = w.builderCoding
+			w.currentMode = w.Config.CodingShortcut
+		}
+		w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
+	}
+
+	return true
+
+	w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
 	return false
 }
 
@@ -320,7 +345,7 @@ func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
 	}
 
 	// Get the complete JavaScript initialization code (includes WASM setup)
-	jsContent, err := w.JavascriptForInitializing()
+	jsContent, err := w.javascriptForInitializing()
 	if err != nil {
 		w.Logger("Failed to generate JavaScript initialization code:", err)
 		return
@@ -333,5 +358,4 @@ func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
 	}
 
 	w.Logger(" DEBUG: Wrote/overwrote JavaScript initialization file in output directory")
-	return
 }

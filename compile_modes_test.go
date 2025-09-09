@@ -80,7 +80,7 @@ func main() {
 
 	// Test JavaScript generation for initial coding mode (Go compiler)
 	t.Log("Testing JavascriptForInitializing for initial coding mode")
-	goJS, err := w.JavascriptForInitializing()
+	goJS, err := w.javascriptForInitializing()
 	if err != nil {
 		t.Errorf("coding mode: JavascriptForInitializing failed: %v", err)
 		t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
@@ -126,6 +126,9 @@ func main() {
 				t.Skipf("tinygo not in PATH; skipping %s mode", tc.name)
 			}
 
+			// Clear all JavaScript caches before each subtest to ensure clean state
+			w.ClearJavaScriptCache()
+
 			// Step 2: Change compilation mode
 			// Ensure we always pass a non-nil progress callback and that progressMsg has a default
 			progressMsg := "(no progress message)"
@@ -142,7 +145,7 @@ func main() {
 			}
 
 			// Test JavaScript generation after mode change
-			modeJS, err := w.JavascriptForInitializing()
+			modeJS, err := w.javascriptForInitializing()
 			if err != nil {
 				t.Errorf("%s mode: JavascriptForInitializing failed: %v", tc.name, err)
 				t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
@@ -159,7 +162,7 @@ func main() {
 			w.ClearJavaScriptCache()
 
 			// Test again to verify cache clearing works
-			freshJS, freshErr := w.JavascriptForInitializing()
+			freshJS, freshErr := w.javascriptForInitializing()
 			if freshErr != nil {
 				t.Errorf("%s mode: JavascriptForInitializing after cache clear failed: %v", tc.name, freshErr)
 			} else if modeJS != freshJS {
@@ -191,7 +194,7 @@ func main() {
 	if tinygoPresent {
 		// Switch to a TinyGo mode to get TinyGo JavaScript; always pass a progress callback
 		w.Change(w.Config.DebuggingShortcut, func(msgs ...any) {})
-		tinygoJS, err := w.JavascriptForInitializing()
+		tinygoJS, err := w.javascriptForInitializing()
 		if err != nil {
 			t.Errorf("Failed to get TinyGo JavaScript: %v", err)
 		} else if len(tinygoJS) > 0 && len(goJS) > 0 {

@@ -53,7 +53,7 @@ func TestJavascriptForInitializingSignatures(t *testing.T) {
 		t.Fatalf("expected TinyGo usage in debug mode, WasmProjectTinyGoJsUse returned false")
 	}
 
-	tinyJs, err := w.JavascriptForInitializing()
+	tinyJs, err := w.javascriptForInitializing()
 	if err != nil {
 		t.Fatalf("JavascriptForInitializing() failed for TinyGo case: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestJavascriptForInitializingSignatures(t *testing.T) {
 		t.Fatalf("expected TinyGo usage to be false in coding mode, but WasmProjectTinyGoJsUse returned true")
 	}
 
-	goJs, err := w.JavascriptForInitializing()
+	goJs, err := w.javascriptForInitializing()
 	if err != nil {
 		t.Fatalf("JavascriptForInitializing() failed for Go case: %v", err)
 	}
