@@ -38,11 +38,21 @@ func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
 		return
 	}
 
-	// Return appropriate cached content if available
-	if TinyGoCompiler && h.tinyGoWasmJsCache != "" {
-		return h.tinyGoWasmJsCache, nil
-	} else if !TinyGoCompiler && h.goWasmJsCache != "" {
-		return h.goWasmJsCache, nil
+	// Determine current mode shortcut and pick the right cache variable.
+	mode := h.Value()
+
+	// Return appropriate cached content if available for each explicit mode.
+	// Coding mode -> modeC_go_wasm_exec_cache
+	// Debugging mode -> modeD_tinygo_wasm_exec_cache
+	// Production mode -> modeP_tinygo_wasm_exec_cache
+	if mode == h.Config.CodingShortcut && h.modeC_go_wasm_exec_cache != "" {
+		return h.modeC_go_wasm_exec_cache, nil
+	}
+	if mode == h.Config.DebuggingShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
+		return h.modeD_tinygo_wasm_exec_cache, nil
+	}
+	if mode == h.Config.ProductionShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
+		return h.modeP_tinygo_wasm_exec_cache, nil
 	}
 
 	var wasmExecJsPath string
@@ -88,11 +98,20 @@ func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
 	// freshly-generated content (line endings, trailing spaces).
 	normalized := normalizeJs(stringWasmJs)
 
-	// Store in appropriate cache
-	if TinyGoCompiler {
-		h.tinyGoWasmJsCache = normalized
+	// Store in appropriate cache based on mode
+	if mode == h.Config.CodingShortcut {
+		h.modeC_go_wasm_exec_cache = normalized
+	} else if mode == h.Config.DebuggingShortcut {
+		h.modeD_tinygo_wasm_exec_cache = normalized
+	} else if mode == h.Config.ProductionShortcut {
+		h.modeP_tinygo_wasm_exec_cache = normalized
 	} else {
-		h.goWasmJsCache = normalized
+		// Fallback: if TinyGo compiler in use write to tinyGo cache, otherwise go cache
+		if TinyGoCompiler {
+			h.modeD_tinygo_wasm_exec_cache = normalized
+		} else {
+			h.modeC_go_wasm_exec_cache = normalized
+		}
 	}
 
 	return normalized, nil
@@ -116,8 +135,9 @@ func normalizeJs(s string) string {
 
 // ClearJavaScriptCache clears both cached JavaScript strings to force regeneration
 func (h *TinyWasm) ClearJavaScriptCache() {
-	h.goWasmJsCache = ""
-	h.tinyGoWasmJsCache = ""
+	h.modeC_go_wasm_exec_cache = ""
+	h.modeD_tinygo_wasm_exec_cache = ""
+	h.modeP_tinygo_wasm_exec_cache = ""
 }
 
 // GetWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file

@@ -28,8 +28,9 @@ type TinyWasm struct {
 	// NEW: Explicit mode tracking to fix Value() method
 	currentMode string // Track current mode explicitly ("c", "d", "p")
 
-	goWasmJsCache     string
-	tinyGoWasmJsCache string
+	modeC_go_wasm_exec_cache     string // cache wasm_exec.js file content per mode coding
+	modeD_tinygo_wasm_exec_cache string // cache wasm_exec.js file content per mode debug
+	modeP_tinygo_wasm_exec_cache string // cache wasm_exec.js file content per mode production
 }
 
 // Config holds configuration for WASM compilation
@@ -170,13 +171,13 @@ func (w *TinyWasm) Value() string {
 func (w *TinyWasm) detectProjectConfiguration() {
 	// Priority 1: Check for existing wasm_exec.js (definitive source)
 	if w.detectFromExistingWasmExecJs() {
-		w.Logger("DEBUG: WASM project detected from existing wasm_exec.js")
+		//w.Logger("DEBUG: WASM project detected from existing wasm_exec.js")
 		return
 	}
 
 	// Priority 2: Check for .wasm.go files (confirms WASM project)
 	if w.detectFromGoFiles() {
-		w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
+		//w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
 		w.wasmProject = true
 		w.tinyGoCompiler = false
 		w.currentMode = w.Config.CodingShortcut
@@ -184,6 +185,7 @@ func (w *TinyWasm) detectProjectConfiguration() {
 		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
 		// This writes the initialization JS so downstream flows (tests/compile) have it.
 		w.wasmProjectWriteOrReplaceWasmExecJsOutput()
+		return
 	}
 
 	w.Logger("No WASM project detected")
@@ -236,19 +238,19 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 	if tinyCount > goCount && tinyCount > 0 {
 		w.tinyGoCompiler = true
 		w.wasmProject = true
-		w.Logger("DEBUG: Detected TinyGo compiler from wasm_exec.js")
+		//w.Logger("DEBUG: Detected TinyGo compiler from wasm_exec.js")
 	} else if goCount > tinyCount && goCount > 0 {
 		w.tinyGoCompiler = false
 		w.wasmProject = true
-		w.Logger("DEBUG: Detected Go compiler from wasm_exec.js")
+		//w.Logger("DEBUG: Detected Go compiler from wasm_exec.js")
 	} else if tinyCount > 0 || goCount > 0 {
 		// Single-sided detection
 		w.tinyGoCompiler = tinyCount > 0
 		w.wasmProject = true
-		compiler := map[bool]string{true: "TinyGo", false: "Go"}[w.tinyGoCompiler]
-		w.Logger("DEBUG: Detected WASM project, compiler:", compiler)
+		//compiler := map[bool]string{true: "TinyGo", false: "Go"}[w.tinyGoCompiler]
+		//w.Logger("DEBUG: Detected WASM project, compiler:", compiler)
 	} else {
-		w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
+		//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
 		return false
 	}
 
@@ -262,7 +264,7 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 		} else {
 			w.activeBuilder = w.builderCoding
 		}
-		w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
+		//w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
 	} else {
 		// No header found, use signature-based defaults
 		if w.tinyGoCompiler {
@@ -272,13 +274,12 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 			w.activeBuilder = w.builderCoding
 			w.currentMode = w.Config.CodingShortcut
 		}
-		w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
+		//w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
 	}
 
 	return true
 
-	w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
-	return false
+	//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
 }
 
 // detectFromGoFiles checks for .wasm.go files to confirm WASM project

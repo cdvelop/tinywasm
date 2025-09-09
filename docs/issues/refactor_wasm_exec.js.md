@@ -332,7 +332,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 ### 5. **Cache Strategy - RESOLVED** ✅
 - **Decision**: **NO CHANGES** to existing cache mechanism
 - **Rationale**: Current cache in `JavascriptForInitializing()` already works correctly for in-memory content generation
-- **Implementation**: Keep existing `goWasmJsCache` and `tinyGoWasmJsCache` as-is
+- **Implementation**: Keep existing `modeC_go_wasm_exec_cache` and `modeD_tinygo_wasm_exec_cache` as-is
 
 ### 6. **Error Handling - RESOLVED** ✅
 - **Decision**: Non-fatal error handling with logging only

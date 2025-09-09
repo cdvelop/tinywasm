@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -142,6 +143,27 @@ func main() {
 			// Assert that the internal mode has changed
 			if w.Value() != tc.mode {
 				t.Fatalf("After Change, expected mode '%s', got '%s'", tc.mode, w.Value())
+			}
+
+			// CRITICAL: Verify that the wasm_exec.js header reflects the new mode
+			wasmExecPath := filepath.Join(tmp, cfg.WebFilesRootRelative, cfg.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+			if data, err := os.ReadFile(wasmExecPath); err != nil {
+				t.Errorf("Failed to read wasm_exec.js after mode change to %s: %v", tc.name, err)
+			} else {
+				content := string(data)
+				expectedHeader := fmt.Sprintf("// TinyWasm: mode=%s", tc.mode)
+				if !strings.Contains(content, expectedHeader) {
+					// This is the bug we're looking for
+					lines := strings.Split(content, "\n")
+					actualFirstLine := ""
+					if len(lines) > 0 {
+						actualFirstLine = lines[0]
+					}
+					t.Errorf("Mode %s: wasm_exec.js header mismatch. Expected: '%s', got first line: '%s'",
+						tc.name, expectedHeader, actualFirstLine)
+				} else {
+					t.Logf("Mode %s: wasm_exec.js header correctly updated to: %s", tc.name, expectedHeader)
+				}
 			}
 
 			// Test JavaScript generation after mode change
