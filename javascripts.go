@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -28,6 +29,11 @@ func wasm_execTinyGoSignatures() []string {
 		"$runtime.alloc",
 		"tinygo_js",
 	}
+}
+
+// getWasmExecJsOutputPath returns the output path for wasm_exec.js
+func (w *TinyWasm) getWasmExecJsOutputPath() string {
+	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
 }
 
 // javascriptForInitializing returns the JavaScript code needed to initialize WASM
@@ -265,4 +271,130 @@ func (h *TinyWasm) getModeFromWasmExecJsHeader(content string) (string, bool) {
 	}
 
 	return "", false
+}
+
+// wasmProjectWriteOrReplaceWasmExecJsOutput writes (or overwrites) the
+// wasm_exec.js initialization file into the configured web output folder for
+// WASM projects. If the receiver is not a WASM project the function returns
+// false immediately. On success or on any write attempt it returns true; any
+// filesystem or generation errors are logged via w.Logger and treated as
+// non-fatal so callers can continue their workflow.
+func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
+	// Only perform actions for recognized WASM projects
+	if !w.wasmProject {
+		w.Logger("DEBUG: Not a WASM project, skipping wasm_exec.js write")
+		return
+	}
+
+	outputPath := w.getWasmExecJsOutputPath()
+
+	w.Logger("DEBUG: Writing/overwriting wasm_exec.js to output path:", outputPath)
+
+	// Create output directory if it doesn't exist
+	outputDir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		w.Logger("Failed to create output directory:", err)
+		return // We did attempt the operation (project), but treat errors as non-fatal
+	}
+
+	// Get the complete JavaScript initialization code (includes WASM setup)
+	jsContent, err := w.javascriptForInitializing()
+	if err != nil {
+		w.Logger("Failed to generate JavaScript initialization code:", err)
+		return
+	}
+
+	// Write the complete JavaScript to output location, always overwrite
+	if err := os.WriteFile(outputPath, []byte(jsContent), 0644); err != nil {
+		w.Logger("Failed to write JavaScript initialization file:", err)
+		return
+	}
+
+	w.Logger(" DEBUG: Wrote/overwrote JavaScript initialization file in output directory")
+}
+
+// analyzeWasmExecJsContent analyzes existing wasm_exec.js to determine compiler type
+func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		w.Logger("Error reading wasm_exec.js for detection:", err)
+		return false
+	}
+
+	content := string(data)
+
+	// Count signatures (reuse existing logic from wasmDetectionFuncFromJsFileActive)
+	goCount := 0
+	for _, s := range wasm_execGoSignatures() {
+		if Contains(content, s) {
+			goCount++
+		}
+	}
+
+	tinyCount := 0
+	for _, s := range wasm_execTinyGoSignatures() {
+		if Contains(content, s) {
+			tinyCount++
+		}
+	}
+
+	// Determine configuration based on signatures
+	if tinyCount > goCount && tinyCount > 0 {
+		w.tinyGoCompiler = true
+		w.wasmProject = true
+		//w.Logger("DEBUG: Detected TinyGo compiler from wasm_exec.js")
+	} else if goCount > tinyCount && goCount > 0 {
+		w.tinyGoCompiler = false
+		w.wasmProject = true
+		//w.Logger("DEBUG: Detected Go compiler from wasm_exec.js")
+	} else if tinyCount > 0 || goCount > 0 {
+		// Single-sided detection
+		w.tinyGoCompiler = tinyCount > 0
+		w.wasmProject = true
+		//compiler := map[bool]string{true: "TinyGo", false: "Go"}[w.tinyGoCompiler]
+		//w.Logger("DEBUG: Detected WASM project, compiler:", compiler)
+	} else {
+		//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
+		return false
+	}
+
+	// After detecting runtime signatures, try to recover last-used mode from header
+	// This gives priority to the user's explicit mode choice over signature defaults
+	if mode, ok := w.getModeFromWasmExecJsHeader(content); ok {
+		w.currentMode = mode
+		// Set activeBuilder according to recovered mode
+		if w.requiresTinyGo(mode) {
+			w.activeBuilder = w.builderDebug
+		} else {
+			w.activeBuilder = w.builderCoding
+		}
+		//w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
+	} else {
+		// No header found, use signature-based defaults
+		if w.tinyGoCompiler {
+			w.activeBuilder = w.builderDebug
+			w.currentMode = w.Config.DebuggingShortcut
+		} else {
+			w.activeBuilder = w.builderCoding
+			w.currentMode = w.Config.CodingShortcut
+		}
+		//w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
+	}
+
+	return true
+
+	//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
+}
+
+// detectFromExistingWasmExecJs checks for existing wasm_exec.js file
+func (w *TinyWasm) detectFromExistingWasmExecJs() bool {
+	wasmExecPath := w.getWasmExecJsOutputPath()
+
+	// Check if file exists
+	if _, err := os.Stat(wasmExecPath); err != nil {
+		return false
+	}
+
+	// Analyze content to determine compiler type
+	return w.analyzeWasmExecJsContent(wasmExecPath)
 }
