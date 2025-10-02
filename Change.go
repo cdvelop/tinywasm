@@ -7,6 +7,14 @@ import (
 	. "github.com/cdvelop/tinystring"
 )
 
+func (w *TinyWasm) Shortcuts() map[string]string {
+	return map[string]string{
+		w.CodingShortcut:     Translate(D.Mode, D.Coding, "stLib").String(),
+		w.DebuggingShortcut:  Translate(D.Mode, D.Debugging, "tinygo").String(),
+		w.ProductionShortcut: Translate(D.Mode, D.Production, "tinygo").String(),
+	}
+}
+
 // Change updates the compiler mode for TinyWasm and reports progress via the provided callback.
 // Implements the HandlerEdit interface: Change(newValue string, progress func(msgs ...any))
 func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
