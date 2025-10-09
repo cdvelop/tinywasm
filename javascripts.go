@@ -1,6 +1,7 @@
 package tinywasm
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,12 @@ import (
 
 	. "github.com/cdvelop/tinystring"
 )
+
+//go:embed assets/wasm_exec_go.js
+var embeddedWasmExecGo []byte
+
+//go:embed assets/wasm_exec_tinygo.js
+var embeddedWasmExecTinyGo []byte
 
 // wasm_execGoSignatures returns signatures expected in Go's wasm_exec.js
 func wasm_execGoSignatures() []string {
@@ -36,10 +43,47 @@ func (w *TinyWasm) getWasmExecJsOutputPath() string {
 	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
 }
 
-// javascriptForInitializing returns the JavaScript code needed to initialize WASM
-func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
+// getWasmExecContent returns the raw wasm_exec.js content for the current compiler configuration.
+// This method returns the unmodified content from embedded assets without any headers or caching.
+// It relies on TinyWasm's internal state (via WasmProjectTinyGoJsUse) to determine which
+// compiler (Go vs TinyGo) to use.
+//
+// The returned content is suitable for:
+//   - Direct file output
+//   - Integration into build tools
+//   - Embedding in worker scripts
+//
+// Note: This method does NOT add mode headers or perform caching. Those responsibilities
+// belong to JavascriptForInitializing() which is used for the internal initialization flow.
+func (w *TinyWasm) getWasmExecContent() ([]byte, error) {
+	// Determine project type and compiler from TinyWasm state
+	wasmType, TinyGoCompiler := w.WasmProjectTinyGoJsUse()
+	if !wasmType {
+		return nil, Errf("not a WASM project")
+	}
+
+	// Return appropriate embedded content based on compiler configuration
+	if TinyGoCompiler {
+		return embeddedWasmExecTinyGo, nil
+	}
+	return embeddedWasmExecGo, nil
+}
+
+// JavascriptForInitializing returns the JavaScript code needed to initialize WASM.
+//
+// Parameters (variadic):
+//   - customizations[0]: Custom header string to prepend to wasm_exec.js content.
+//     If not provided, defaults to "// TinyWasm: mode=<current_mode>\n"
+//   - customizations[1]: Custom footer string to append after wasm_exec.js content.
+//     If not provided, defaults to WebAssembly initialization code with fetch and instantiate.
+//
+// Examples:
+//   - JavascriptForInitializing() - Uses default header and footer
+//   - JavascriptForInitializing("// Custom Header\n") - Custom header, default footer
+//   - JavascriptForInitializing("// Custom Header\n", "console.log('loaded');") - Both custom
+func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js string, err error) {
 	// Load wasm js code
-	wasmType, TinyGoCompiler := h.WasmProjectTinyGoJsUse()
+	wasmType, _ := h.WasmProjectTinyGoJsUse()
 	if !wasmType {
 		return
 	}
@@ -61,30 +105,23 @@ func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
 		return h.modeP_tinygo_wasm_exec_cache, nil
 	}
 
-	var wasmExecJsPath string
-	if TinyGoCompiler {
-		wasmExecJsPath, err = h.GetWasmExecJsPathTinyGo()
-	} else {
-		wasmExecJsPath, err = h.GetWasmExecJsPathGo()
-	}
-	if err != nil {
-		return "", err
-	}
-
-	// Read wasm js code
-	wasmJs, err := os.ReadFile(wasmExecJsPath)
+	// Get raw content from embedded assets instead of system paths
+	wasmJs, err := h.getWasmExecContent()
 	if err != nil {
 		return "", err
 	}
 
 	stringWasmJs := string(wasmJs)
 
-	// Prepend a minimal header comment with current mode so we can
-	// detect what mode was used last time the wasm_exec.js was emitted.
-	// Keep it minimal to avoid introducing differences in generated output.
-	// Capture the mode at generation time to ensure stability across cache operations
-	currentModeAtGeneration := h.Value()
-	header := fmt.Sprintf("// TinyWasm: mode=%s\n", currentModeAtGeneration)
+	// Determine header: use custom if provided, otherwise default
+	var header string
+	if len(customizations) > 0 && customizations[0] != "" {
+		header = customizations[0]
+	} else {
+		// Default header: minimal comment with current mode for detection
+		currentModeAtGeneration := h.Value()
+		header = fmt.Sprintf("// TinyWasm: mode=%s\n", currentModeAtGeneration)
+	}
 	stringWasmJs = header + stringWasmJs
 
 	// Verify activeBuilder is initialized before accessing it
@@ -92,28 +129,36 @@ func (h *TinyWasm) javascriptForInitializing() (js string, err error) {
 		return "", Errf("activeBuilder not initialized")
 	}
 
-	// add code webassebly here
-	stringWasmJs += `
+	// Determine footer: use custom if provided, otherwise default
+	var footer string
+	if len(customizations) > 1 && customizations[1] != "" {
+		footer = customizations[1]
+	} else {
+		// Default footer: WebAssembly initialization code
+		footer = `
 		const go = new Go();
 		WebAssembly.instantiateStreaming(fetch("` + h.activeBuilder.MainOutputFileNameWithExtension() + `"), go.importObject).then((result) => {
 			go.run(result.instance);
 		});
 	`
+	}
+	stringWasmJs += footer
 
 	// Normalize JS output to avoid accidental differences between cached and
 	// freshly-generated content (line endings, trailing spaces).
 	normalized := normalizeJs(stringWasmJs)
 
 	// Store in appropriate cache based on mode
-	if mode == h.Config.CodingShortcut {
+	switch mode {
+	case h.Config.CodingShortcut:
 		h.modeC_go_wasm_exec_cache = normalized
-	} else if mode == h.Config.DebuggingShortcut {
+	case h.Config.DebuggingShortcut:
 		h.modeD_tinygo_wasm_exec_cache = normalized
-	} else if mode == h.Config.ProductionShortcut {
+	case h.Config.ProductionShortcut:
 		h.modeP_tinygo_wasm_exec_cache = normalized
-	} else {
+	default:
 		// Fallback: if TinyGo compiler in use write to tinyGo cache, otherwise go cache
-		if TinyGoCompiler {
+		if h.tinyGoCompiler {
 			h.modeD_tinygo_wasm_exec_cache = normalized
 		} else {
 			h.modeC_go_wasm_exec_cache = normalized
@@ -234,7 +279,7 @@ func (w *TinyWasm) GetWasmExecJsPathGo() (string, error) {
 }
 
 // getModeFromWasmExecJsHeader extracts the mode shortcut from a wasm_exec.js
-// header comment emitted by javascriptForInitializing. The header format is
+// header comment emitted by JavascriptForInitializing. The header format is
 // expected to be: "// TinyWasm: <message>" where <message> is the success
 // message returned by getSuccessMessage. We return the matching shortcut and true
 // when a match is found.
@@ -298,7 +343,7 @@ func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
 	}
 
 	// Get the complete JavaScript initialization code (includes WASM setup)
-	jsContent, err := w.javascriptForInitializing()
+	jsContent, err := w.JavascriptForInitializing()
 	if err != nil {
 		w.Logger("Failed to generate JavaScript initialization code:", err)
 		return

@@ -31,7 +31,7 @@ func TestJavascriptHeaderRoundtrip(t *testing.T) {
 		w.currentMode = mode
 		w.tinyGoInstalled = true
 
-		js, err := w.javascriptForInitializing()
+		js, err := w.JavascriptForInitializing()
 		if err != nil {
 			t.Fatalf("failed to generate js for mode %q: %v", mode, err)
 		}
