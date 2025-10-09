@@ -56,7 +56,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 // ShouldCompileToWasm determines if a file should trigger WASM compilation
 func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 	// Always compile main.wasm.go
-	if fileName == w.mainInputFile {
+	if fileName == w.Config.MainInputFile {
 		return true
 	}
 
@@ -73,7 +73,7 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 func (w *TinyWasm) MainInputFileRelativePath() string {
 	// The input lives under the web root (WebFilesRootRelative) by convention.
 	// Return full path including AppRootDir for callers that expect absolute paths
-	return path.Join(w.Config.WebFilesRootRelative, w.mainInputFile)
+	return path.Join(w.Config.WebFilesRootRelative, w.Config.MainInputFile)
 }
 
 // MainOutputFileAbsolutePath returns the absolute path to the main WASM output file (e.g. "main.wasm").

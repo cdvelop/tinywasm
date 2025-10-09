@@ -11,7 +11,6 @@ import (
 // TinyWasm provides WebAssembly compilation capabilities with 3-mode compiler selection
 type TinyWasm struct {
 	*Config
-	mainInputFile string // eg: main.wasm.go
 
 	// RENAME & ADD: 4 builders for complete mode coverage
 	builderCoding     *gobuild.GoBuild // Go standard - fast compilation
@@ -41,6 +40,7 @@ type Config struct {
 	WebFilesRootRelative        string // root web folder (relative) eg: "web"
 	WebFilesSubRelative         string // subfolder under root (relative) eg: "public"
 	WebFilesSubRelativeJsOutput string // output path for js files (relative) eg: "theme/js"
+	MainInputFile               string // main input file for WASM compilation (default: "main.wasm.go")
 	Logger                      func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
@@ -60,6 +60,7 @@ func NewConfig() *Config {
 		AppRootDir:                  ".",
 		WebFilesRootRelative:        "web",
 		WebFilesSubRelativeJsOutput: "theme/js",
+		MainInputFile:               "main.wasm.go",
 		CodingShortcut:              "c",
 		DebuggingShortcut:           "d",
 		ProductionShortcut:          "p",
@@ -71,7 +72,7 @@ func NewConfig() *Config {
 
 // New creates a new TinyWasm instance with the provided configuration
 // Timeout is set to 40 seconds maximum as TinyGo compilation can be slow
-// Default values: mainInputFile="main.wasm.go"
+// Default values: MainInputFile in Config defaults to "main.wasm.go"
 func New(c *Config) *TinyWasm {
 	// Ensure we have a config and a default AppRootDir
 	if c == nil {
@@ -101,10 +102,12 @@ func New(c *Config) *TinyWasm {
 	if c.ProductionShortcut == "" {
 		c.ProductionShortcut = defaults.ProductionShortcut
 	}
+	if c.MainInputFile == "" {
+		c.MainInputFile = defaults.MainInputFile
+	}
 
 	w := &TinyWasm{
-		Config:        c,
-		mainInputFile: "main.wasm.go",
+		Config: c,
 
 		// Initialize dynamic fields
 		tinyGoCompiler:  false, // Default to fast Go compilation; enable later via TinyWasm methods if desired
@@ -207,7 +210,7 @@ func (w *TinyWasm) detectFromGoFiles() bool {
 		fileName := info.Name()
 
 		// Check for main.wasm.go file (strong indicator of WASM project)
-		if fileName == w.mainInputFile {
+		if fileName == w.Config.MainInputFile {
 			wasmFilesFound = true
 			return filepath.SkipAll // Found main file, can stop walking
 		}

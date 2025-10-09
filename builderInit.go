@@ -11,7 +11,7 @@ import (
 func (w *TinyWasm) builderWasmInit() {
 	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
 	subFolder := w.Config.WebFilesSubRelative
-	mainInputFileRelativePath := path.Join(rootFolder, w.mainInputFile)
+	mainInputFileRelativePath := path.Join(rootFolder, w.Config.MainInputFile)
 	outFolder := path.Join(rootFolder, subFolder)
 
 	// Base configuration shared by all builders

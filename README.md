@@ -96,9 +96,12 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 ```go
 type Config struct {
-	WebFilesRootRelative string    // root web folder (relative) eg: "web"
-	WebFilesSubRelative  string    // subfolder under root (relative) eg: "public"
-	Logger               func(message ...any) // For logging output to external systems (e.g., TUI, console)
+	AppRootDir                  string        // application root directory (absolute), defaults to "."
+	WebFilesRootRelative        string        // root web folder (relative) eg: "web"
+	WebFilesSubRelative         string        // subfolder under root (relative) eg: "public"
+	WebFilesSubRelativeJsOutput string        // output path for js files (relative) eg: "theme/js"
+	MainInputFile               string        // main input file for WASM compilation (default: "main.wasm.go")
+	Logger                      func(message ...any) // For logging output to external systems (e.g., TUI, console)
 	// NOTE: `TinyGoCompiler` was removed from the public `Config` to avoid
 	// confusion. The compiler selection is controlled at runtime via the
 	// TinyWasm instance. Use `tw.Change("c"|"d"|"p")` to switch modes and
