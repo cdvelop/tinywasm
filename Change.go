@@ -9,9 +9,9 @@ import (
 
 func (w *TinyWasm) Shortcuts() map[string]string {
 	return map[string]string{
-		w.CodingShortcut:     Translate(D.Mode, D.Coding, "stLib").String(),
-		w.DebuggingShortcut:  Translate(D.Mode, D.Debugging, "tinygo").String(),
-		w.ProductionShortcut: Translate(D.Mode, D.Production, "tinygo").String(),
+		w.BuildFastShortcut:    Translate(D.Mode, D.Coding, "stLib").String(),
+		w.BuildBugShortcut:     Translate(D.Mode, D.Debugging, "tinygo").String(),
+		w.BuildMinimalShortcut: Translate(D.Mode, D.Production, "tinygo").String(),
 	}
 }
 
@@ -83,9 +83,9 @@ func (w *TinyWasm) RecompileMainWasm() error {
 // validateMode validates if the provided mode is supported
 func (w *TinyWasm) validateMode(mode string) error {
 	validModes := []string{
-		w.Config.CodingShortcut,     // "c"
-		w.Config.DebuggingShortcut,  // "d"
-		w.Config.ProductionShortcut, // "p"
+		w.Config.BuildFastShortcut,    // "c"
+		w.Config.BuildBugShortcut,     // "d"
+		w.Config.BuildMinimalShortcut, // "p"
 	}
 
 	for _, valid := range validModes {
@@ -101,11 +101,11 @@ func (w *TinyWasm) validateMode(mode string) error {
 func (w *TinyWasm) getSuccessMessage(mode string) string {
 	var msg string
 	switch mode {
-	case w.Config.CodingShortcut:
+	case w.Config.BuildFastShortcut:
 		msg = Translate("Switching", "to", "coding", "mode").String()
-	case w.Config.DebuggingShortcut:
+	case w.Config.BuildBugShortcut:
 		msg = Translate("Switching", "to", "debugging", "mode").String()
-	case w.Config.ProductionShortcut:
+	case w.Config.BuildMinimalShortcut:
 		msg = Translate("Switching", "to", "production", "mode").String()
 	default:
 		msg = Translate(D.Invalid, "mode").String()
@@ -114,11 +114,11 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 	// Fallback if Translate returns empty string
 	if msg == "" {
 		switch mode {
-		case w.Config.CodingShortcut:
+		case w.Config.BuildFastShortcut:
 			msg = "Switching to coding mode"
-		case w.Config.DebuggingShortcut:
+		case w.Config.BuildBugShortcut:
 			msg = "Switching to debugging mode"
-		case w.Config.ProductionShortcut:
+		case w.Config.BuildMinimalShortcut:
 			msg = "Switching to production mode"
 		default:
 			msg = "Invalid mode"

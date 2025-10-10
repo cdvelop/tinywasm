@@ -124,13 +124,13 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		tinyWasm.tinyGoCompiler = false // Start with Go standard compiler
 
 		// Verify initial state (should be coding mode)
-		if tinyWasm.Value() != "c" {
+		if tinyWasm.Value() != "f" {
 			t.Fatal("Expected coding mode to be used initially")
 		}
 
 		// Test setting TinyGo compiler (debug mode) using progress callback
 		var changeMsg string
-		tinyWasm.Change("d", func(msgs ...any) {
+		tinyWasm.Change("b", func(msgs ...any) {
 			if len(msgs) > 0 {
 				changeMsg = fmt.Sprint(msgs...)
 			}
@@ -140,7 +140,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 			t.Logf("TinyGo not available: %s", changeMsg)
 		} else {
 			// Check that we successfully switched to debug mode
-			if tinyWasm.Value() != "d" {
+			if tinyWasm.Value() != "b" {
 				t.Fatal("Expected debug mode to be set after change")
 			}
 			// Message can be success or warning (auto-compilation might fail in test env)

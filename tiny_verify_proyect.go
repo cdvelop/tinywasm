@@ -15,7 +15,7 @@ func (w *TinyWasm) TinyGoCompiler() bool {
 
 // requiresTinyGo checks if the mode requires TinyGo compiler
 func (w *TinyWasm) requiresTinyGo(mode string) bool {
-	return mode == w.Config.DebuggingShortcut || mode == w.Config.ProductionShortcut
+	return mode == w.Config.BuildBugShortcut || mode == w.Config.BuildMinimalShortcut
 }
 
 // installTinyGo placeholder for future TinyGo installation

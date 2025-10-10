@@ -36,9 +36,9 @@ func TestInitializationDetectionFromWasmExecJs(t *testing.T) {
 		AppRootDir:                  testDir,
 		WebFilesRootRelative:        "web",
 		WebFilesSubRelativeJsOutput: "theme/js",
-		CodingShortcut:              "c",
-		DebuggingShortcut:           "d",
-		ProductionShortcut:          "p",
+		BuildFastShortcut:           "f",
+		BuildBugShortcut:            "b",
+		BuildMinimalShortcut:        "m",
 		Logger:                      func(message ...any) {},
 	}
 
@@ -51,8 +51,8 @@ func TestInitializationDetectionFromWasmExecJs(t *testing.T) {
 	if tinyWasm.tinyGoCompiler {
 		t.Error("Expected tinyGoCompiler to be false (Go detected)")
 	}
-	if tinyWasm.currentMode != config.CodingShortcut {
-		t.Errorf("Expected currentMode to be %s, got %s", config.CodingShortcut, tinyWasm.currentMode)
+	if tinyWasm.currentMode != config.BuildFastShortcut {
+		t.Errorf("Expected currentMode to be %s, got %s", config.BuildFastShortcut, tinyWasm.currentMode)
 	}
 }
 
@@ -87,8 +87,8 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 	if tinyWasm.tinyGoCompiler {
 		t.Error("Expected tinyGoCompiler to be false (default to Go)")
 	}
-	if tinyWasm.currentMode != config.CodingShortcut {
-		t.Errorf("Expected currentMode to be %s, got %s", config.CodingShortcut, tinyWasm.currentMode)
+	if tinyWasm.currentMode != config.BuildFastShortcut {
+		t.Errorf("Expected currentMode to be %s, got %s", config.BuildFastShortcut, tinyWasm.currentMode)
 	}
 
 	// Ensure wasm_exec.js was created in the output path and is non-empty
@@ -125,9 +125,9 @@ func TestDefaultConfiguration(t *testing.T) {
 	config := &Config{
 		AppRootDir:           "/test",
 		WebFilesRootRelative: "web",
-		CodingShortcut:       "c",
-		DebuggingShortcut:    "d",
-		ProductionShortcut:   "p",
+		BuildFastShortcut:    "c",
+		BuildBugShortcut:     "d",
+		BuildMinimalShortcut: "p",
 		Logger:               func(message ...any) {},
 	}
 
@@ -156,9 +156,9 @@ func TestNoWasmProjectDetected(t *testing.T) {
 		AppRootDir:                  testDir,
 		WebFilesRootRelative:        "web",
 		WebFilesSubRelativeJsOutput: "theme/js",
-		CodingShortcut:              "c",
-		DebuggingShortcut:           "d",
-		ProductionShortcut:          "p",
+		BuildFastShortcut:           "f",
+		BuildBugShortcut:            "b",
+		BuildMinimalShortcut:        "m",
 		Logger:                      func(message ...any) {},
 	}
 

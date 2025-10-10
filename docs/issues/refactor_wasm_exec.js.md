@@ -60,7 +60,7 @@ func (w *TinyWasm) detectProjectConfiguration() {
         w.Logger("WASM project detected from .wasm.go files, defaulting to Go compiler")
         w.wasmProject = true
         w.tinyGoCompiler = false
-        w.currentMode = w.Config.CodingShortcut
+        w.currentMode = w.Config.BuildFastShortcut
         return
     }
     

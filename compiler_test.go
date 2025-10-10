@@ -115,7 +115,7 @@ func TestCompilerComparison(t *testing.T) {
 			if tc.tinyGoEnabled {
 				// Try to enable TinyGo (might fail if not installed). Use progress callback to capture messages.
 				var msg string
-				tinyWasm.Change("d", func(msgs ...any) {
+				tinyWasm.Change("b", func(msgs ...any) {
 					if len(msgs) > 0 {
 						msg = fmt.Sprint(msgs...)
 					}

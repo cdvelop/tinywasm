@@ -194,13 +194,13 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
     mode := h.Value()
 
     // Return appropriate cached content if available
-    if mode == h.Config.CodingShortcut && h.modeC_go_wasm_exec_cache != "" {
+    if mode == h.Config.BuildFastShortcut && h.modeC_go_wasm_exec_cache != "" {
         return h.modeC_go_wasm_exec_cache, nil
     }
-    if mode == h.Config.DebuggingShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
+    if mode == h.Config.BuildBugShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
         return h.modeD_tinygo_wasm_exec_cache, nil
     }
-    if mode == h.Config.ProductionShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
+    if mode == h.Config.BuildMinimalShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
         return h.modeP_tinygo_wasm_exec_cache, nil
     }
 

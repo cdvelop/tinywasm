@@ -50,8 +50,8 @@ func main() {
 	w.tinyGoCompiler = true
 
 	// Debug: Check initial state
-	if w.Value() != w.Config.CodingShortcut {
-		t.Fatalf("Initial mode should be '%s', got '%s'", w.Config.CodingShortcut, w.Value())
+	if w.Value() != w.Config.BuildFastShortcut {
+		t.Fatalf("Initial mode should be '%s', got '%s'", w.Config.BuildFastShortcut, w.Value())
 	}
 
 	// Check tinygo availability
@@ -100,7 +100,7 @@ func main() {
 		assertSize   func(t *testing.T, size int64)
 	}{
 		{
-			mode: w.Config.DebuggingShortcut, name: "debugging", requiresTiny: true,
+			mode: w.Config.BuildBugShortcut, name: "debugging", requiresTiny: true,
 			assertSize: func(t *testing.T, size int64) {
 				if size == codingModeFileSize {
 					t.Errorf("debugging mode file size (%d) should be different from coding mode size (%d)", size, codingModeFileSize)
@@ -108,7 +108,7 @@ func main() {
 			},
 		},
 		{
-			mode: w.Config.ProductionShortcut, name: "production", requiresTiny: true,
+			mode: w.Config.BuildMinimalShortcut, name: "production", requiresTiny: true,
 			assertSize: func(t *testing.T, size int64) {
 				if size == codingModeFileSize {
 					t.Errorf("production mode file size (%d) should be different from coding mode size (%d)", size, codingModeFileSize)
@@ -215,7 +215,7 @@ func main() {
 	// Verify that Go and TinyGo generate different JavaScript
 	if tinygoPresent {
 		// Switch to a TinyGo mode to get TinyGo JavaScript; always pass a progress callback
-		w.Change(w.Config.DebuggingShortcut, func(msgs ...any) {})
+		w.Change(w.Config.BuildBugShortcut, func(msgs ...any) {})
 		tinygoJS, err := w.JavascriptForInitializing()
 		if err != nil {
 			t.Errorf("Failed to get TinyGo JavaScript: %v", err)

@@ -7,7 +7,7 @@ Go package for intelligent WebAssembly compilation with automatic file detection
 
 ## Features
 
-- **3-Mode Compiler System**: Coding ("c"), Debug ("d"), Production ("p")
+- **3-Mode Compiler System**: Fast ("f"), Bugs ("b"), Minimal ("m")
 - **DevTUI Integration**: FieldHandler interface for interactive mode switching
 - Smart file detection via prefixes (frontend/backend separation)
 - Triple compiler support: Go standard (fast dev), TinyGo debug (-opt=1), TinyGo production (-opt=z)
@@ -26,17 +26,17 @@ tw := tinywasm.New(config)
 tw.NewFileEvent("web/main.wasm.go", ".go", "web/main.wasm.go", "write")
 
 // DevTUI Integration - 3 Mode System
-fmt.Println("Current mode:", tw.Value())    // "c" (coding)
-msg, err := tw.Change("d")                  // Switch to debug mode
+fmt.Println("Current mode:", tw.Value())    // "f" (coding)
+msg, err := tw.Change("b")                  // Switch to debug mode
 fmt.Println("Status:", msg)                 // "Switching to debugging mode"
 
 // Advanced configuration
 config := &tinywasm.Config{
     WebFilesRootRelative: "web",
     WebFilesSubRelative:  "public",
-    CodingShortcut:      "c",  // Customizable shortcuts
-    DebuggingShortcut:   "d",
-    ProductionShortcut:  "p",
+    BuildFastShortcut:      "f",  // Customizable shortcuts
+    BuildBugShortcut:   "b",
+    BuildMinimalShortcut:  "m",
 }
 ```
 
@@ -48,12 +48,12 @@ TinyWasm implements the DevTUI FieldHandler interface for interactive developmen
 ```go
 // DevTUI Integration
 label := tw.Label()           // "Compiler Mode"
-current := tw.Value()         // Current mode shortcut ("c", "d", "p")
+current := tw.Value()         // Current mode shortcut ("f", "b", "m")
 canEdit := tw.Editable()      // true
 timeout := tw.Timeout()       // 0 (no timeout)
 
 // Interactive mode change with validation
-msg, err := tw.Change("d")
+msg, err := tw.Change("b")
 if err != nil {
     // Handle validation errors (invalid mode, missing TinyGo, etc.)
 }
@@ -77,7 +77,7 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 **DevTUI FieldHandler Interface:**
 - `Label() string` - Returns "Compiler Mode"
-- `Value() string` - Current mode shortcut ("c", "d", "p")
+- `Value() string` - Current mode shortcut ("f", "b", "m")
 - `Editable() bool` - Returns true (field is editable)
 - `Change(newValue any) (string, error)` - Switch compiler mode with validation
 - `Timeout() time.Duration` - Returns 0 (no timeout)
@@ -104,14 +104,14 @@ type Config struct {
 	Logger                      func(message ...any) // For logging output to external systems (e.g., TUI, console)
 	// NOTE: `TinyGoCompiler` was removed from the public `Config` to avoid
 	// confusion. The compiler selection is controlled at runtime via the
-	// TinyWasm instance. Use `tw.Change("c"|"d"|"p")` to switch modes and
+	// TinyWasm instance. Use `tw.Change("f"|"b"|"m")` to switch modes and
 	// `tw.Value()` to inspect the current mode. The internal boolean
 	// `tinyGoCompiler` remains a private implementation detail.
 
-	// NEW: Shortcut configuration (default: "c", "d", "p")
-	CodingShortcut     string // coding "c" compile fast with go
-	DebuggingShortcut  string // debugging "d" compile with tinygo debug
-	ProductionShortcut string // production "p" compile with tinygo minimal binary size
+	// NEW: Shortcut configuration (default: "f", "b", "m")
+	BuildFastShortcut     string // coding "f" (fast) compile fast with go
+	BuildBugShortcut  string // debugging "b" (bugs) compile with tinygo debug
+	BuildMinimalShortcut string // production "m" (minimal) compile with tinygo minimal binary size
 
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
@@ -125,9 +125,9 @@ func NewConfig() *Config
 
 ## Mode Switching
 ```go
-tw.Change("p")  // production mode with TinyGo -opt=z
-tw.Change("d")  // debug mode with TinyGo -opt=1
-tw.Change("c")  // coding mode with Go standard
+tw.Change("m")  // production mode with TinyGo -opt=z
+tw.Change("b")  // debug mode with TinyGo -opt=1
+tw.Change("f")  // coding mode with Go standard
 ```
 
 ## Requirements
@@ -142,9 +142,9 @@ tw.Change("c")  // coding mode with Go standard
 
 | Old API | New API | Notes |
 |---------|---------|-------|
-| `SetTinyGoCompiler(true)` | `Change("p")` | Production mode |
-| `SetTinyGoCompiler(false)` | `Change("c")` | Coding mode |
-| `TinyGoCompiler()` | `Value() == "p" \|\| Value() == "d"` | Check if using TinyGo |
+| `SetTinyGoCompiler(true)` | `Change("m")` | Production mode |
+| `SetTinyGoCompiler(false)` | `Change("f")` | Coding mode |
+| `TinyGoCompiler()` | `Value() == "m" \|\| Value() == "b"` | Check if using TinyGo |
 | `config.Log` | `config.Writer` | Field renamed |
 
 **Benefits:**

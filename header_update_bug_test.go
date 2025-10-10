@@ -9,7 +9,7 @@ import (
 )
 
 // TestHeaderUpdateBugReproduction reproduces the specific bug where switching
-// from mode "d" to mode "p" doesn't update the wasm_exec.js header correctly.
+// from mode "b" to mode "m" doesn't update the wasm_exec.js header correctly.
 // This simulates the real-world scenario where AssetMin reads the stale header.
 func TestHeaderUpdateBugReproduction(t *testing.T) {
 	// Create isolated temp workspace
@@ -84,43 +84,43 @@ func main() {
 	}
 
 	// Initial state should be coding mode
-	verifyHeader("c", "After initial creation")
+	verifyHeader("f", "After initial creation")
 
 	// Step 2: Change to debugging mode
 	t.Log("=== Changing to debugging mode ===")
 	progressCb := func(msgs ...any) {
 		// Just capture progress messages
 	}
-	w.Change(w.Config.DebuggingShortcut, progressCb)
+	w.Change(w.Config.BuildBugShortcut, progressCb)
 
-	if w.Value() != "d" {
-		t.Errorf("Expected mode 'd', got '%s'", w.Value())
+	if w.Value() != "b" {
+		t.Errorf("Expected mode 'b', got '%s'", w.Value())
 	}
-	verifyHeader("d", "After changing to debugging mode")
+	verifyHeader("b", "After changing to debugging mode")
 
 	// Step 3: THE CRITICAL TEST - Change to production mode
 	t.Log("=== Changing to production mode (THE BUG TEST) ===")
-	w.Change(w.Config.ProductionShortcut, progressCb)
+	w.Change(w.Config.BuildMinimalShortcut, progressCb)
 
-	if w.Value() != "p" {
-		t.Errorf("Expected mode 'p', got '%s'", w.Value())
+	if w.Value() != "m" {
+		t.Errorf("Expected mode 'm', got '%s'", w.Value())
 	}
 
 	// This is where the bug should be detected
-	verifyHeader("p", "After changing to production mode (CRITICAL)")
+	verifyHeader("m", "After changing to production mode (CRITICAL)")
 
 	// Step 4: Test back and forth to ensure robustness
 	t.Log("=== Testing mode switching robustness ===")
 
 	// Back to debugging
-	w.Change(w.Config.DebuggingShortcut, progressCb)
-	verifyHeader("d", "Back to debugging mode")
+	w.Change(w.Config.BuildBugShortcut, progressCb)
+	verifyHeader("b", "Back to debugging mode")
 
 	// Back to production
-	w.Change(w.Config.ProductionShortcut, progressCb)
-	verifyHeader("p", "Back to production mode (second time)")
+	w.Change(w.Config.BuildMinimalShortcut, progressCb)
+	verifyHeader("m", "Back to production mode (second time)")
 
 	// Back to coding
-	w.Change(w.Config.CodingShortcut, progressCb)
-	verifyHeader("c", "Back to coding mode")
+	w.Change(w.Config.BuildFastShortcut, progressCb)
+	verifyHeader("f", "Back to coding mode")
 }

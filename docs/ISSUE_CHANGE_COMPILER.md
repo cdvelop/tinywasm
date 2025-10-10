@@ -73,9 +73,9 @@ func (w *TinyWasm) Timeout() time.Duration {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
     return &Config{
-        CodingShortcut:     "c",
-        DebuggingShortcut:  "d",
-        ProductionShortcut: "p",
+        BuildFastShortcut:     "c",
+        BuildBugShortcut:  "d",
+        BuildMinimalShortcut: "p",
         TinyGoCompiler:     false, // Default to fast Go compilation
         FrontendPrefix:     []string{"f.", "front."},
     }
@@ -86,11 +86,11 @@ func NewConfig() *Config {
 ```go
 func (w *TinyWasm) getSuccessMessage(mode string) string {
     switch mode {
-    case w.Config.CodingShortcut:
+    case w.Config.BuildFastShortcut:
         return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
-    case w.Config.DebuggingShortcut:
+    case w.Config.BuildBugShortcut:
         return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"
-    case w.Config.ProductionShortcut:
+    case w.Config.BuildMinimalShortcut:
         return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
         return Translate(D.Invalid, D.Mode)
@@ -172,9 +172,9 @@ type Config struct {
     // ... existing fields ...
 
     // NEW: Shortcut configuration (default: "c", "d", "p")
-    CodingShortcut    string // default "c" 
-    DebuggingShortcut string // default "d"
-    ProductionShortcut string // default "p"
+    BuildFastShortcut    string // default "c" 
+    BuildBugShortcut string // default "d"
+    BuildMinimalShortcut string // default "p"
 }
 ```
 
@@ -226,11 +226,11 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
     // 2. Set activeBuilder based on mode
     switch mode {
-    case w.Config.CodingShortcut:     // "c"
+    case w.Config.BuildFastShortcut:     // "c"
         w.activeBuilder = w.builderCoding
-    case w.Config.DebuggingShortcut:  // "d" 
+    case w.Config.BuildBugShortcut:  // "d" 
         w.activeBuilder = w.builderDebug
-    case w.Config.ProductionShortcut: // "p"
+    case w.Config.BuildMinimalShortcut: // "p"
         w.activeBuilder = w.builderProduction
     default:
         w.activeBuilder = w.builderCoding // fallback to coding mode
@@ -316,21 +316,21 @@ func (w *TinyWasm) getCurrentMode() string {
     // Determine current mode based on activeBuilder
     switch w.activeBuilder {
     case w.builderCoding:
-        return w.Config.CodingShortcut     // "c"
+        return w.Config.BuildFastShortcut     // "c"
     case w.builderDebug:
-        return w.Config.DebuggingShortcut  // "d"
+        return w.Config.BuildBugShortcut  // "d"
     case w.builderProduction:
-        return w.Config.ProductionShortcut // "p"
+        return w.Config.BuildMinimalShortcut // "p"
     default:
-        return w.Config.CodingShortcut     // fallback
+        return w.Config.BuildFastShortcut     // fallback
     }
 }
 
 func (w *TinyWasm) validateMode(mode string) error {
     validModes := []string{
-        w.Config.CodingShortcut,    // "c"
-        w.Config.DebuggingShortcut, // "d" 
-        w.Config.ProductionShortcut, // "p"
+        w.Config.BuildFastShortcut,    // "c"
+        w.Config.BuildBugShortcut, // "d" 
+        w.Config.BuildMinimalShortcut, // "p"
     }
     
     for _, valid := range validModes {
@@ -368,11 +368,11 @@ Add these terms to TinyString dictionary if not present:
 func (w *TinyWasm) getSuccessMessage(mode string) string {
     // Import: "github.com/cdvelop/tinystring"
     switch mode {
-    case w.Config.CodingShortcut:
+    case w.Config.BuildFastShortcut:
         return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
-    case w.Config.DebuggingShortcut:
+    case w.Config.BuildBugShortcut:
         return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"  
-    case w.Config.ProductionShortcut:
+    case w.Config.BuildMinimalShortcut:
         return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
         return Translate(D.Invalid, D.Mode)                  // "Invalid Mode"
@@ -385,7 +385,7 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 #### TinyGo Installation Check
 ```go
 func (w *TinyWasm) requiresTinyGo(mode string) bool {
-    return mode == w.Config.DebuggingShortcut || mode == w.Config.ProductionShortcut
+    return mode == w.Config.BuildBugShortcut || mode == w.Config.BuildMinimalShortcut
 }
 
 func (w *TinyWasm) handleTinyGoMissing(mode string) error {

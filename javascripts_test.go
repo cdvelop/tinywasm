@@ -43,7 +43,7 @@ func TestJavascriptForInitializingSignatures(t *testing.T) {
 
 	// --- TinyGo case ---
 	// Set mode to debug (requires TinyGo)
-	w.currentMode = w.Config.DebuggingShortcut
+	w.currentMode = w.Config.BuildBugShortcut
 	// ensure installer flag
 	w.tinyGoInstalled = true
 
@@ -72,7 +72,7 @@ func TestJavascriptForInitializingSignatures(t *testing.T) {
 
 	// --- Go case ---
 	// Set mode to coding (Go standard)
-	w.currentMode = w.Config.CodingShortcut
+	w.currentMode = w.Config.BuildFastShortcut
 
 	_, tinyUsedAfter := w.WasmProjectTinyGoJsUse()
 	if tinyUsedAfter {

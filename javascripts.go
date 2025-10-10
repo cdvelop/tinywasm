@@ -95,13 +95,13 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 	// Coding mode -> modeC_go_wasm_exec_cache
 	// Debugging mode -> modeD_tinygo_wasm_exec_cache
 	// Production mode -> modeP_tinygo_wasm_exec_cache
-	if mode == h.Config.CodingShortcut && h.modeC_go_wasm_exec_cache != "" {
+	if mode == h.Config.BuildFastShortcut && h.modeC_go_wasm_exec_cache != "" {
 		return h.modeC_go_wasm_exec_cache, nil
 	}
-	if mode == h.Config.DebuggingShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
+	if mode == h.Config.BuildBugShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
 		return h.modeD_tinygo_wasm_exec_cache, nil
 	}
-	if mode == h.Config.ProductionShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
+	if mode == h.Config.BuildMinimalShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
 		return h.modeP_tinygo_wasm_exec_cache, nil
 	}
 
@@ -151,11 +151,11 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 
 	// Store in appropriate cache based on mode
 	switch mode {
-	case h.Config.CodingShortcut:
+	case h.Config.BuildFastShortcut:
 		h.modeC_go_wasm_exec_cache = normalized
-	case h.Config.DebuggingShortcut:
+	case h.Config.BuildBugShortcut:
 		h.modeD_tinygo_wasm_exec_cache = normalized
-	case h.Config.ProductionShortcut:
+	case h.Config.BuildMinimalShortcut:
 		h.modeP_tinygo_wasm_exec_cache = normalized
 	default:
 		// Fallback: if TinyGo compiler in use write to tinyGo cache, otherwise go cache
@@ -419,10 +419,10 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 		// No header found, use signature-based defaults
 		if w.tinyGoCompiler {
 			w.activeBuilder = w.builderDebug
-			w.currentMode = w.Config.DebuggingShortcut
+			w.currentMode = w.Config.BuildBugShortcut
 		} else {
 			w.activeBuilder = w.builderCoding
-			w.currentMode = w.Config.CodingShortcut
+			w.currentMode = w.Config.BuildFastShortcut
 		}
 		//w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
 	}

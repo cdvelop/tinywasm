@@ -75,11 +75,11 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
 	// 2. Set activeBuilder based on mode
 	switch mode {
-	case w.Config.CodingShortcut: // "c"
+	case w.Config.BuildFastShortcut: // "c"
 		w.activeBuilder = w.builderCoding
-	case w.Config.DebuggingShortcut: // "d"
+	case w.Config.BuildBugShortcut: // "d"
 		w.activeBuilder = w.builderDebug
-	case w.Config.ProductionShortcut: // "p"
+	case w.Config.BuildMinimalShortcut: // "p"
 		w.activeBuilder = w.builderProduction
 	default:
 		w.activeBuilder = w.builderCoding // fallback to coding mode

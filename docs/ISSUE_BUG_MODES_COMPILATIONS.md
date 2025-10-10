@@ -57,10 +57,10 @@ The `Value()` method compares `w.activeBuilder` with `w.builderCoding`, `w.build
 ```go
 func (w *TinyWasm) Value() string {
     if w.activeBuilder == w.builderCoding {
-        return w.Config.CodingShortcut
+        return w.Config.BuildFastShortcut
     }
     // ... other comparisons
-    return w.Config.CodingShortcut // fallback
+    return w.Config.BuildFastShortcut // fallback
 }
 ```
 
@@ -86,7 +86,7 @@ type TinyWasm struct {
 
 func (w *TinyWasm) Value() string {
     if w.currentMode == "" {
-        return w.Config.CodingShortcut // default
+        return w.Config.BuildFastShortcut // default
     }
     return w.currentMode
 }

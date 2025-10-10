@@ -45,10 +45,10 @@ type Config struct {
 	Logger                      func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
-	// NEW: Shortcut configuration (default: "c", "d", "p")
-	CodingShortcut     string // coding "c" compile fast with go
-	DebuggingShortcut  string // debugging "d" compile with tinygo debug
-	ProductionShortcut string // production "p" compile with tinygo minimal binary size
+	// NEW: Shortcut configuration (default: "f", "b", "m")
+	BuildFastShortcut    string // "f" (fast) compile fast with go
+	BuildBugShortcut     string // "b" (bugs) compile with tinygo debug
+	BuildMinimalShortcut string // "m" (minimal) compile with tinygo minimal binary size
 
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
@@ -63,9 +63,9 @@ func NewConfig() *Config {
 		WebFilesSubRelativeJsOutput: "theme/js",
 		MainInputFile:               "main.wasm.go",
 		OutputName:                  "main",
-		CodingShortcut:              "c",
-		DebuggingShortcut:           "d",
-		ProductionShortcut:          "p",
+		BuildFastShortcut:           "f",
+		BuildBugShortcut:            "b",
+		BuildMinimalShortcut:        "m",
 		Logger: func(message ...any) {
 			// Default logger: do nothing (silent operation)
 		},
@@ -95,14 +95,14 @@ func New(c *Config) *TinyWasm {
 	// Use NewConfig() as the authoritative source of defaults and copy any
 	// missing shortcut values from it.
 	defaults := NewConfig()
-	if c.CodingShortcut == "" {
-		c.CodingShortcut = defaults.CodingShortcut
+	if c.BuildFastShortcut == "" {
+		c.BuildFastShortcut = defaults.BuildFastShortcut
 	}
-	if c.DebuggingShortcut == "" {
-		c.DebuggingShortcut = defaults.DebuggingShortcut
+	if c.BuildBugShortcut == "" {
+		c.BuildBugShortcut = defaults.BuildBugShortcut
 	}
-	if c.ProductionShortcut == "" {
-		c.ProductionShortcut = defaults.ProductionShortcut
+	if c.BuildMinimalShortcut == "" {
+		c.BuildMinimalShortcut = defaults.BuildMinimalShortcut
 	}
 	if c.MainInputFile == "" {
 		c.MainInputFile = defaults.MainInputFile
@@ -120,11 +120,11 @@ func New(c *Config) *TinyWasm {
 		tinyGoInstalled: false, // Verified on first use
 
 		// Initialize with default mode
-		currentMode: c.CodingShortcut, // Start with coding mode
+		currentMode: c.BuildFastShortcut, // Start with coding mode
 	}
 
 	if w.currentMode == "" {
-		w.currentMode = w.Config.CodingShortcut
+		w.currentMode = w.Config.BuildFastShortcut
 	}
 
 	// Set default for WebFilesSubRelativeJsOutput if not configured
@@ -169,7 +169,7 @@ func (w *TinyWasm) Label() string {
 func (w *TinyWasm) Value() string {
 	// Use explicit mode tracking instead of pointer comparison
 	if w.currentMode == "" {
-		return w.Config.CodingShortcut // Default to coding mode
+		return w.Config.BuildFastShortcut // Default to coding mode
 	}
 	return w.currentMode
 }
@@ -187,7 +187,7 @@ func (w *TinyWasm) detectProjectConfiguration() {
 		//w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
 		w.wasmProject = true
 		w.tinyGoCompiler = false
-		w.currentMode = w.Config.CodingShortcut
+		w.currentMode = w.Config.BuildFastShortcut
 
 		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
 		// This writes the initialization JS so downstream flows (tests/compile) have it.
