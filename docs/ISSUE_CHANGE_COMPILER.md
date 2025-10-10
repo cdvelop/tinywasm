@@ -54,7 +54,7 @@ func (w *TinyWasm) Change(newValue any) (string, error) {
     w.updateCurrentBuilder(modeStr)
     
     // Auto-recompile with appropriate message format for MessageType detection
-    if err := w.recompileMainWasm(); err != nil {
+    if err := w.RecompileMainWasm(); err != nil {
         // Return warning message - MessageType will detect "Warning:" keyword
         warningMsg := Translate("Warning:", D.Auto, D.Compilation, D.Failed, err.Error())
         return warningMsg, nil // Don't fail the mode change

@@ -45,7 +45,7 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	}
 
 	// Auto-recompile with appropriate message format for MessageType detection
-	if err := w.recompileMainWasm(); err != nil {
+	if err := w.RecompileMainWasm(); err != nil {
 		// Report warning message via progress (don't treat as fatal)
 		warningMsg := Translate("Warning:", "auto", "compilation", "failed:", err).String()
 		if warningMsg == "" {
@@ -63,8 +63,8 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	progress(w.getSuccessMessage(newValue))
 }
 
-// recompileMainWasm recompiles the main WASM file if it exists
-func (w *TinyWasm) recompileMainWasm() error {
+// RecompileMainWasm recompiles the main WASM file if it exists
+func (w *TinyWasm) RecompileMainWasm() error {
 	if w.activeBuilder == nil {
 		return Err("builder not initialized")
 	}

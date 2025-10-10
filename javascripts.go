@@ -115,13 +115,14 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 
 	// Determine header: use custom if provided, otherwise default
 	var header string
-	if len(customizations) > 0 && customizations[0] != "" {
+	if len(customizations) > 0 {
 		header = customizations[0]
 	} else {
 		// Default header: minimal comment with current mode for detection
 		currentModeAtGeneration := h.Value()
 		header = fmt.Sprintf("// TinyWasm: mode=%s\n", currentModeAtGeneration)
 	}
+
 	stringWasmJs = header + stringWasmJs
 
 	// Verify activeBuilder is initialized before accessing it
@@ -131,7 +132,7 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 
 	// Determine footer: use custom if provided, otherwise default
 	var footer string
-	if len(customizations) > 1 && customizations[1] != "" {
+	if len(customizations) > 1 {
 		footer = customizations[1]
 	} else {
 		// Default footer: WebAssembly initialization code

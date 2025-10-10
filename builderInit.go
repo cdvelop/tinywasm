@@ -17,7 +17,7 @@ func (w *TinyWasm) builderWasmInit() {
 	// Base configuration shared by all builders
 	baseConfig := gobuild.Config{
 		MainInputFileRelativePath: mainInputFileRelativePath,
-		OutName:                   "main", // Output will be main.wasm
+		OutName:                   w.Config.OutputName, // Output will be {OutputName}.wasm
 		Extension:                 ".wasm",
 		OutFolderRelativePath:     outFolder,
 		Logger:                    w.Logger,
@@ -87,4 +87,9 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
 	// 3. Update current mode tracking
 	w.currentMode = mode
+}
+
+// returns the full path to the final output file eg: web/build/main.wasm
+func (w *TinyWasm) OutputRelativePath() string {
+	return w.activeBuilder.FinalOutputPath()
 }

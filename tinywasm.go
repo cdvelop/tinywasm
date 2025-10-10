@@ -41,6 +41,7 @@ type Config struct {
 	WebFilesSubRelative         string // subfolder under root (relative) eg: "public"
 	WebFilesSubRelativeJsOutput string // output path for js files (relative) eg: "theme/js"
 	MainInputFile               string // main input file for WASM compilation (default: "main.wasm.go")
+	OutputName                  string // output name for WASM file (default: "main")
 	Logger                      func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
@@ -61,6 +62,7 @@ func NewConfig() *Config {
 		WebFilesRootRelative:        "web",
 		WebFilesSubRelativeJsOutput: "theme/js",
 		MainInputFile:               "main.wasm.go",
+		OutputName:                  "main",
 		CodingShortcut:              "c",
 		DebuggingShortcut:           "d",
 		ProductionShortcut:          "p",
@@ -104,6 +106,9 @@ func New(c *Config) *TinyWasm {
 	}
 	if c.MainInputFile == "" {
 		c.MainInputFile = defaults.MainInputFile
+	}
+	if c.OutputName == "" {
+		c.OutputName = defaults.OutputName
 	}
 
 	w := &TinyWasm{
