@@ -9,9 +9,9 @@ import (
 
 func (w *TinyWasm) Shortcuts() map[string]string {
 	return map[string]string{
-		w.BuildFastShortcut:    Translate(D.Mode, D.Coding, "stLib").String(),
-		w.BuildBugShortcut:     Translate(D.Mode, D.Debugging, "tinygo").String(),
-		w.BuildMinimalShortcut: Translate(D.Mode, D.Production, "tinygo").String(),
+		w.BuildFastShortcut:    Translate(D.Mode, "Fast", "stLib").String(),
+		w.BuildBugShortcut:     Translate(D.Mode, "Debugging", "tinygo").String(),
+		w.BuildMinimalShortcut: Translate(D.Mode, "Minimal", "tinygo").String(),
 	}
 }
 

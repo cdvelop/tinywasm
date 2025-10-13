@@ -53,6 +53,10 @@ type Config struct {
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
 	CompilingArguments func() []string // Build arguments for compilation (e.g., ldflags)
+
+	// DisableWasmExecJsOutput prevents automatic creation of wasm_exec.js file
+	// Useful when embedding wasm_exec.js content inline (e.g., Cloudflare Pages Advanced Mode)
+	DisableWasmExecJsOutput bool
 }
 
 // NewConfig creates a TinyWasm Config with sensible defaults
@@ -191,7 +195,10 @@ func (w *TinyWasm) detectProjectConfiguration() {
 
 		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
 		// This writes the initialization JS so downstream flows (tests/compile) have it.
-		w.wasmProjectWriteOrReplaceWasmExecJsOutput()
+		// Skip if DisableWasmExecJsOutput is set (e.g., for inline embedding scenarios)
+		if !w.Config.DisableWasmExecJsOutput {
+			w.wasmProjectWriteOrReplaceWasmExecJsOutput()
+		}
 		return
 	}
 
@@ -212,10 +219,17 @@ func (w *TinyWasm) detectFromGoFiles() bool {
 			return nil // Continue walking directories
 		}
 
+		// Get relative path from AppRootDir for comparison
+		relPath, err := filepath.Rel(w.Config.AppRootDir, path)
+		if err != nil {
+			relPath = path // Fallback to absolute path if relative fails
+		}
+
 		fileName := info.Name()
 
 		// Check for main.wasm.go file (strong indicator of WASM project)
-		if fileName == w.Config.MainInputFile {
+		// Compare both the relative path and just the filename
+		if relPath == w.Config.MainInputFile || fileName == w.Config.MainInputFile {
 			wasmFilesFound = true
 			return filepath.SkipAll // Found main file, can stop walking
 		}
