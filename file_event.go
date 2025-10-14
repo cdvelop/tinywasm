@@ -71,16 +71,16 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 
 // MainInputFileRelativePath returns the relative path to the main WASM input file (e.g. "main.wasm.go").
 func (w *TinyWasm) MainInputFileRelativePath() string {
-	// The input lives under the web root (WebFilesRootRelative) by convention.
+	// The input lives under the source directory by convention.
 	// Return full path including AppRootDir for callers that expect absolute paths
-	return path.Join(w.Config.WebFilesRootRelative, w.Config.MainInputFile)
+	return path.Join(w.Config.SourceDir, w.Config.MainInputFile)
 }
 
 // MainOutputFileAbsolutePath returns the absolute path to the main WASM output file (e.g. "main.wasm").
 func (w *TinyWasm) MainOutputFileAbsolutePath() string {
-	// The output file is created in OutFolderRelativePath which is:
-	// AppRootDir/WebFilesRootRelative/WebFilesSubRelative/main.wasm
-	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelative, "main.wasm")
+	// The output file is created in OutputDir which is:
+	// AppRootDir/OutputDir/main.wasm
+	return path.Join(w.Config.AppRootDir, w.Config.OutputDir, "main.wasm")
 }
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm

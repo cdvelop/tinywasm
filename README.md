@@ -12,18 +12,19 @@ Go package for intelligent WebAssembly compilation with automatic file detection
 - Smart file detection via prefixes (frontend/backend separation)
 - Triple compiler support: Go standard (fast dev), TinyGo debug (-opt=1), TinyGo production (-opt=z)
 - VS Code auto-configuration for WASM development
-- Single output: All files → `main.wasm`
+- **Dual Output Architecture**: WASM binaries in `src/web/public/`, watchable JS in `src/web/ui/js/`
 
 ## Quick Start
 
 ```go
 // Basic usage
 config := tinywasm.NewConfig() // Pre-configured with defaults
-config.WebFilesRootRelative = "web"
-config.WebFilesSubRelative = "public"
+config.SourceDir = "src/cmd/webclient"
+config.OutputDir = "src/web/public"
+config.WasmExecJsOutputDir = "src/web/ui/js"
 
 tw := tinywasm.New(config)
-tw.NewFileEvent("web/main.wasm.go", ".go", "web/main.wasm.go", "write")
+tw.NewFileEvent("src/cmd/webclient/main.go", ".go", "src/cmd/webclient/main.go", "write")
 
 // DevTUI Integration - 3 Mode System
 fmt.Println("Current mode:", tw.Value())    // "f" (coding)
@@ -32,11 +33,16 @@ fmt.Println("Status:", msg)                 // "Switching to debugging mode"
 
 // Advanced configuration
 config := &tinywasm.Config{
-    WebFilesRootRelative: "web",
-    WebFilesSubRelative:  "public",
-    BuildFastShortcut:      "f",  // Customizable shortcuts
-    BuildBugShortcut:   "b",
-    BuildMinimalShortcut:  "m",
+    AppRootDir:          "/path/to/project",
+    SourceDir:           "src/cmd/webclient",
+    OutputDir:           "src/web/public",
+    WasmExecJsOutputDir: "src/web/ui/js",
+    MainInputFile:       "main.go",
+    OutputName:          "main",
+    BuildFastShortcut:   "f",  // Customizable shortcuts
+    BuildBugShortcut:    "b",
+    BuildMinimalShortcut: "m",
+    Logger:              logger,
 }
 ```
 
@@ -96,32 +102,57 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 ```go
 type Config struct {
-	AppRootDir                  string        // application root directory (absolute), defaults to "."
-	WebFilesRootRelative        string        // root web folder (relative) eg: "web"
-	WebFilesSubRelative         string        // subfolder under root (relative) eg: "public"
-	WebFilesSubRelativeJsOutput string        // output path for js files (relative) eg: "theme/js"
-	MainInputFile               string        // main input file for WASM compilation (default: "main.wasm.go")
-	Logger                      func(message ...any) // For logging output to external systems (e.g., TUI, console)
-	// NOTE: `TinyGoCompiler` was removed from the public `Config` to avoid
-	// confusion. The compiler selection is controlled at runtime via the
-	// TinyWasm instance. Use `tw.Change("f"|"b"|"m")` to switch modes and
-	// `tw.Value()` to inspect the current mode. The internal boolean
-	// `tinyGoCompiler` remains a private implementation detail.
+	AppRootDir          string        // application root directory (absolute), defaults to "."
+	SourceDir           string        // directory containing Go source (relative) eg: "src/cmd/webclient"
+	OutputDir           string        // directory for WASM binary output (relative) eg: "src/web/public"
+	WasmExecJsOutputDir string        // directory for watchable JS runtime (relative) eg: "src/web/ui/js"
+	MainInputFile       string        // main input file for WASM compilation (default: "main.go")
+	OutputName          string        // output name for WASM file (default: "main")
+	Logger              func(message ...any) // For logging output to external systems (e.g., TUI, console)
 
 	// NEW: Shortcut configuration (default: "f", "b", "m")
-	BuildFastShortcut     string // coding "f" (fast) compile fast with go
-	BuildBugShortcut  string // debugging "b" (bugs) compile with tinygo debug
-	BuildMinimalShortcut string // production "m" (minimal) compile with tinygo minimal binary size
+	BuildFastShortcut    string // "f" (fast) compile fast with go
+	BuildBugShortcut     string // "b" (bugs) compile with tinygo debug
+	BuildMinimalShortcut string // "m" (minimal) compile with tinygo minimal binary size
 
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
 	CompilingArguments func() []string // Build arguments for compilation (e.g., ldflags)
 
+	// DisableWasmExecJsOutput prevents automatic creation of wasm_exec.js file
+	// Useful when embedding wasm_exec.js content inline (e.g., Cloudflare Pages Advanced Mode)
+	DisableWasmExecJsOutput bool
 }
 
 // Pre-configured constructor (recommended)
 func NewConfig() *Config
 ```
+
+## Dual Output Architecture
+
+TinyWasm produces **two types of outputs** that serve different purposes in the build pipeline:
+
+### 1. **WASM Binary Output** (`OutputDir`)
+- **Location:** `src/web/public/main.wasm`
+- **Purpose:** Final compiled WebAssembly binary loaded by the browser
+- **Consumed by:** Browser at runtime
+- **Modes:** All three compilation modes produce output here
+
+### 2. **Watchable JavaScript Output** (`WasmExecJsOutputDir`)
+- **Location:** `src/web/ui/js/wasm_exec.js`
+- **Purpose:** Mode-specific JavaScript runtime that:
+  - Informs external tools about the current compilation mode (Go vs TinyGo)
+  - Triggers file watchers to reload the browser when mode changes
+  - Gets compiled together with other JavaScript by external asset bundlers
+- **Consumed by:** File watchers (e.g., `devwatch`) and asset bundlers (e.g., `assetmin`)
+- **Important:** TinyWasm's **only responsibility** is writing the correct `wasm_exec.js` according to the active mode. External tools handle final bundling.
+
+### Why Two Separate Directories?
+
+1. **Separation of Concerns:** Runtime assets vs. build-time integration
+2. **Build Pipeline Integration:** File watchers track `wasm_exec.js` changes
+3. **No Dev/Prod States:** All modes use the same directories
+4. **Mode Transparency:** External tools detect mode changes via `wasm_exec.js`
 
 ## Mode Switching
 ```go
@@ -146,6 +177,9 @@ tw.Change("f")  // coding mode with Go standard
 | `SetTinyGoCompiler(false)` | `Change("f")` | Coding mode |
 | `TinyGoCompiler()` | `Value() == "m" \|\| Value() == "b"` | Check if using TinyGo |
 | `config.Log` | `config.Writer` | Field renamed |
+| `WebFilesRootRelative` | `SourceDir` | Input directory for Go source |
+| `WebFilesSubRelative` | `OutputDir` | Output directory for WASM binaries |
+| `WebFilesSubRelativeJsOutput` | `WasmExecJsOutputDir` | Output directory for watchable JS |
 
 **Benefits:**
 - 🎯 **3 optimized modes** instead of binary choice
@@ -153,6 +187,7 @@ tw.Change("f")  // coding mode with Go standard
 - 📦 **Smaller debug builds** with TinyGo -opt=1
 - ⚡ **Auto-recompilation** on mode switch
 - 🛠️ **Better error handling** with validation
+- 🏗️ **Dual output architecture** for better build pipeline integration
 
 
 ## [Contributing](https://github.com/cdvelop/cdvelop/blob/main/CONTRIBUTING.md)

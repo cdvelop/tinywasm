@@ -11,32 +11,42 @@ import (
 func TestTinyWasmNewFileEvent(t *testing.T) {
 	// Setup test environment with an isolated temporary directory
 	rootDir := t.TempDir()
-	// WebFilesRootRelative should be the subfolder name under AppRootDir
-	webDirName := "wasmTest"
-	webDir := filepath.Join(rootDir, webDirName)
+	// SourceDir should be the subfolder name under AppRootDir
+	sourceDirName := "wasmTest"
+	sourceDir := filepath.Join(rootDir, sourceDirName)
 
-	publicDir := filepath.Join(webDir, "public")
+	outputDir := filepath.Join(rootDir, "output")
 	// Create directories
-	for _, dir := range []string{webDir, publicDir} {
+	for _, dir := range []string{sourceDir, outputDir} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			t.Fatalf("Error creating test directory: %v", err)
 		}
 	}
 
+	// Write a minimal go.mod
+	goModPath := filepath.Join(rootDir, "go.mod")
+	goModContent := `module test
+
+go 1.21
+`
+	if err := os.WriteFile(goModPath, []byte(goModContent), 0644); err != nil {
+		t.Fatalf("failed to write go.mod: %v", err)
+	}
+
 	// Configure TinyWasm handler with a logger for testing output
 	var logMessages []string
 	config := &Config{
-		AppRootDir:           rootDir,
-		WebFilesRootRelative: webDirName,
-		WebFilesSubRelative:  "public",
+		AppRootDir: rootDir,
+		SourceDir:  sourceDirName,
+		OutputDir:  "output",
 		Logger: func(message ...any) {
 			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
 	}
 
 	tinyWasm := New(config)
-	t.Run("Verify main.wasm.go compilation", func(t *testing.T) {
-		mainWasmPath := filepath.Join(rootDir, webDirName, "main.wasm.go") // main.wasm.go in web root
+	t.Run("Verify main.go compilation", func(t *testing.T) {
+		mainWasmPath := filepath.Join(rootDir, sourceDirName, "main.go") // main.go in source root
 		defer os.Remove(mainWasmPath)
 
 		// Create main wasm file
@@ -47,7 +57,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}`
 		os.WriteFile(mainWasmPath, []byte(content), 0644)
 
-		err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
+		err := tinyWasm.NewFileEvent("main.go", ".go", mainWasmPath, "write")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -59,8 +69,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}
 	})
 	t.Run("Verify module wasm compilation now goes to main.wasm", func(t *testing.T) {
-		// Create main.wasm.go in the web root first
-		mainWasmPath := filepath.Join(rootDir, webDirName, "main.wasm.go") // main.wasm.go in web root
+		// Create main.go in the web root first
+		mainWasmPath := filepath.Join(rootDir, sourceDirName, "main.go") // main.go in source root
 		mainContent := `package main
 
 		func main() {
@@ -68,8 +78,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		}`
 		os.WriteFile(mainWasmPath, []byte(mainContent), 0644)
 
-		// Create another .wasm.go file in webDir to simulate additional WASM entry
-		moduleWasmPath := filepath.Join(rootDir, webDirName, "users.wasm.go")
+		// Create another .wasm.go file in sourceDir to simulate additional WASM entry
+		moduleWasmPath := filepath.Join(rootDir, sourceDirName, "users.wasm.go")
 		content := `package main
 
 		func main() {
@@ -102,7 +112,7 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 	})
 
 	t.Run("Handle non-write event", func(t *testing.T) {
-		mainWasmPath := filepath.Join(rootDir, webDirName, "public", "wasm", "main.wasm.go")
+		mainWasmPath := filepath.Join(rootDir, sourceDirName, "main.wasm.go")
 		err := tinyWasm.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "create")
 		if err != nil {
 			t.Fatal("Expected no error for non-write event")
@@ -113,8 +123,8 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 		var logMessages []string
 		config := NewConfig()
 		config.AppRootDir = rootDir
-		config.WebFilesRootRelative = webDirName
-		config.WebFilesSubRelative = "public"
+		config.SourceDir = sourceDirName
+		config.OutputDir = "output"
 		config.Logger = func(message ...any) {
 			logMessages = append(logMessages, fmt.Sprint(message...))
 		}
@@ -155,9 +165,9 @@ func TestTinyWasmNewFileEvent(t *testing.T) {
 func TestUnobservedFiles(t *testing.T) {
 	var logMessages []string
 	config := &Config{
-		AppRootDir:           ".",
-		WebFilesRootRelative: "web",
-		WebFilesSubRelative:  "public",
+		AppRootDir: ".",
+		SourceDir:  "web",
+		OutputDir:  "public",
 		Logger: func(message ...any) {
 			logMessages = append(logMessages, fmt.Sprint(message...))
 		},

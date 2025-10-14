@@ -9,17 +9,16 @@ import (
 
 // builderWasmInit configures 3 builders for WASM compilation modes
 func (w *TinyWasm) builderWasmInit() {
-	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
-	subFolder := w.Config.WebFilesSubRelative
-	mainInputFileRelativePath := path.Join(rootFolder, w.Config.MainInputFile)
-	outFolder := path.Join(rootFolder, subFolder)
+	sourceDir := path.Join(w.AppRootDir, w.Config.SourceDir)
+	outputDir := path.Join(w.AppRootDir, w.Config.OutputDir)
+	mainInputFileRelativePath := path.Join(sourceDir, w.Config.MainInputFile)
 
 	// Base configuration shared by all builders
 	baseConfig := gobuild.Config{
 		MainInputFileRelativePath: mainInputFileRelativePath,
 		OutName:                   w.Config.OutputName, // Output will be {OutputName}.wasm
 		Extension:                 ".wasm",
-		OutFolderRelativePath:     outFolder,
+		OutFolderRelativePath:     outputDir,
 		Logger:                    w.Logger,
 		Timeout:                   60 * time.Second, // 1 minute for all modes
 		Callback:                  w.Callback,
@@ -75,11 +74,11 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
 	// 2. Set activeBuilder based on mode
 	switch mode {
-	case w.Config.BuildFastShortcut: // "c"
+	case w.Config.BuildFastShortcut: // "f"
 		w.activeBuilder = w.builderCoding
-	case w.Config.BuildBugShortcut: // "d"
+	case w.Config.BuildBugShortcut: // "b"
 		w.activeBuilder = w.builderDebug
-	case w.Config.BuildMinimalShortcut: // "p"
+	case w.Config.BuildMinimalShortcut: // "m"
 		w.activeBuilder = w.builderProduction
 	default:
 		w.activeBuilder = w.builderCoding // fallback to coding mode

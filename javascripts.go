@@ -40,7 +40,7 @@ func wasm_execTinyGoSignatures() []string {
 
 // getWasmExecJsOutputPath returns the output path for wasm_exec.js
 func (w *TinyWasm) getWasmExecJsOutputPath() string {
-	return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+	return path.Join(w.Config.AppRootDir, w.Config.WasmExecJsOutputDir, "wasm_exec.js")
 }
 
 // getWasmExecContent returns the raw wasm_exec.js content for the current compiler configuration.

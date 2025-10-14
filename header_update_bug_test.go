@@ -25,8 +25,17 @@ func TestHeaderUpdateBugReproduction(t *testing.T) {
 		t.Fatalf("failed to create js dir: %v", err)
 	}
 
-	// Write a minimal main.wasm.go
-	mainWasmPath := filepath.Join(webDir, "main.wasm.go")
+	// Write a minimal go.mod
+	goModContent := `module test
+
+go 1.21
+`
+	if err := os.WriteFile(filepath.Join(tmp, "go.mod"), []byte(goModContent), 0644); err != nil {
+		t.Fatalf("failed to write go.mod: %v", err)
+	}
+
+	// Write a minimal main.go
+	mainWasmPath := filepath.Join(webDir, "main.go")
 	wasmContent := `package main
 
 func main() {
@@ -34,16 +43,16 @@ func main() {
 }
 `
 	if err := os.WriteFile(mainWasmPath, []byte(wasmContent), 0644); err != nil {
-		t.Fatalf("failed to write main.wasm.go: %v", err)
+		t.Fatalf("failed to write main.go: %v", err)
 	}
 
 	// Prepare config to match real-world setup
 	var logMessages []string
 	cfg := NewConfig()
 	cfg.AppRootDir = tmp
-	cfg.WebFilesRootRelative = webDirName
-	cfg.WebFilesSubRelative = "public"
-	cfg.WebFilesSubRelativeJsOutput = filepath.Join("theme", "js") // Realistic path
+	cfg.SourceDir = webDirName
+	cfg.OutputDir = filepath.Join(webDirName, "public")
+	cfg.WasmExecJsOutputDir = filepath.Join(webDirName, "theme", "js")
 	cfg.Logger = func(message ...any) {
 		logMessages = append(logMessages, fmt.Sprint(message...))
 	}
@@ -52,10 +61,10 @@ func main() {
 	w.tinyGoCompiler = true
 	w.wasmProject = true
 
-	wasmExecPath := filepath.Join(tmp, cfg.WebFilesRootRelative, cfg.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+	wasmExecPath := filepath.Join(tmp, cfg.WasmExecJsOutputDir, "wasm_exec.js")
 
 	// Step 1: Initialize with coding mode and create initial file
-	err := w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "create")
+	err := w.NewFileEvent("main.go", ".go", mainWasmPath, "create")
 	if err != nil {
 		t.Fatalf("NewFileEvent with create event failed: %v", err)
 	}

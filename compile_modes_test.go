@@ -10,7 +10,7 @@ import (
 )
 
 // TestCompileAllModes attempts to compile the WASM main file to disk
-// using the three supported modes: coding (go), debugging (tinygo), production (tinygo).
+// using the three supported modes: fast (go), debugging (tinygo), minimal (tinygo).
 // Simulates the real integration flow: InitialRegistration -> NewFileEvent -> Change modes.
 // If tinygo is not present in PATH, the tinygo modes are skipped.
 func TestCompileAllModes(t *testing.T) {
@@ -19,12 +19,25 @@ func TestCompileAllModes(t *testing.T) {
 	webDirName := "web"
 	webDir := filepath.Join(tmp, webDirName)
 	publicDir := filepath.Join(webDir, "public")
+	jsDir := filepath.Join(webDir, "theme", "js")
 	if err := os.MkdirAll(publicDir, 0755); err != nil {
 		t.Fatalf("failed to create test dirs: %v", err)
 	}
+	if err := os.MkdirAll(jsDir, 0755); err != nil {
+		t.Fatalf("failed to create test dirs: %v", err)
+	}
 
-	// Write a minimal main.wasm.go
-	mainWasmPath := filepath.Join(webDir, "main.wasm.go")
+	// Write a minimal go.mod
+	goModContent := `module test
+
+go 1.21
+`
+	if err := os.WriteFile(filepath.Join(tmp, "go.mod"), []byte(goModContent), 0644); err != nil {
+		t.Fatalf("failed to write go.mod: %v", err)
+	}
+
+	// Write a minimal main.go
+	mainWasmPath := filepath.Join(webDir, "main.go")
 	wasmContent := `package main
 
 func main() {
@@ -32,15 +45,16 @@ func main() {
 }
 `
 	if err := os.WriteFile(mainWasmPath, []byte(wasmContent), 0644); err != nil {
-		t.Fatalf("failed to write main.wasm.go: %v", err)
+		t.Fatalf("failed to write main.go: %v", err)
 	}
 
 	// Prepare config with logger to prevent nil pointer dereference
 	var logMessages []string
 	cfg := NewConfig()
 	cfg.AppRootDir = tmp
-	cfg.WebFilesRootRelative = webDirName
-	cfg.WebFilesSubRelative = "public"
+	cfg.SourceDir = webDirName
+	cfg.OutputDir = filepath.Join(webDirName, "public")
+	cfg.WasmExecJsOutputDir = filepath.Join(webDirName, "theme", "js")
 	cfg.Logger = func(message ...any) {
 		logMessages = append(logMessages, fmt.Sprint(message...))
 	}
@@ -59,13 +73,13 @@ func main() {
 	tinygoPresent := err == nil
 
 	// Step 1: Simulate InitialRegistration flow - notify about existing file
-	err = w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "create")
+	err = w.NewFileEvent("main.go", ".go", mainWasmPath, "create")
 	if err != nil {
 		t.Fatalf("NewFileEvent with create event failed: %v", err)
 	}
 
 	outPath := func() string {
-		return filepath.Join(tmp, cfg.WebFilesRootRelative, cfg.WebFilesSubRelative, "main.wasm")
+		return filepath.Join(tmp, cfg.OutputDir, "main.wasm")
 	}
 
 	// Initial compile in coding mode to get a baseline file size
@@ -77,16 +91,12 @@ func main() {
 	if codingModeFileSize == 0 {
 		t.Fatalf("coding mode: output file exists but is empty: %s", outPath())
 	}
-	t.Logf("coding mode: successfully compiled %d bytes", codingModeFileSize)
 
 	// Test JavaScript generation for initial coding mode (Go compiler)
-	t.Log("Testing JavascriptForInitializing for initial coding mode")
 	goJS, err := w.JavascriptForInitializing()
 	if err != nil {
 		t.Errorf("coding mode: JavascriptForInitializing failed: %v", err)
-		t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
 	} else {
-		t.Logf("coding mode: JavascriptForInitializing success, length: %d", len(goJS))
 		if len(goJS) == 0 {
 			t.Errorf("coding mode: JavascriptForInitializing returned empty JavaScript")
 		}
@@ -146,7 +156,7 @@ func main() {
 			}
 
 			// CRITICAL: Verify that the wasm_exec.js header reflects the new mode
-			wasmExecPath := filepath.Join(tmp, cfg.WebFilesRootRelative, cfg.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+			wasmExecPath := filepath.Join(tmp, cfg.WasmExecJsOutputDir, "wasm_exec.js")
 			if data, err := os.ReadFile(wasmExecPath); err != nil {
 				t.Errorf("Failed to read wasm_exec.js after mode change to %s: %v", tc.name, err)
 			} else {
@@ -161,8 +171,6 @@ func main() {
 					}
 					t.Errorf("Mode %s: wasm_exec.js header mismatch. Expected: '%s', got first line: '%s'",
 						tc.name, expectedHeader, actualFirstLine)
-				} else {
-					t.Logf("Mode %s: wasm_exec.js header correctly updated to: %s", tc.name, expectedHeader)
 				}
 			}
 
@@ -170,11 +178,9 @@ func main() {
 			modeJS, err := w.JavascriptForInitializing()
 			if err != nil {
 				t.Errorf("%s mode: JavascriptForInitializing failed: %v", tc.name, err)
-				t.Logf("Logger output: %s", fmt.Sprintf("%v", logMessages))
 				return
 			}
 
-			t.Logf("%s mode: JavascriptForInitializing success, length: %d", tc.name, len(modeJS))
 			if len(modeJS) == 0 {
 				t.Errorf("%s mode: JavascriptForInitializing returned empty JavaScript", tc.name)
 				return
@@ -189,12 +195,10 @@ func main() {
 				t.Errorf("%s mode: JavascriptForInitializing after cache clear failed: %v", tc.name, freshErr)
 			} else if modeJS != freshJS {
 				t.Errorf("%s mode: JavaScript differs after cache clear (length %d vs %d)", tc.name, len(modeJS), len(freshJS))
-			} else {
-				t.Logf("%s mode: JavaScript consistent after cache clear", tc.name)
 			}
 
 			// Step 3: Simulate file modification event to trigger re-compilation
-			err = w.NewFileEvent("main.wasm.go", ".go", mainWasmPath, "write")
+			err = w.NewFileEvent("main.go", ".go", mainWasmPath, "write")
 			if err != nil {
 				t.Fatalf("mode %s: NewFileEvent with write event failed: %v; progress: %s", tc.name, err, progressMsg)
 			}
@@ -208,7 +212,6 @@ func main() {
 			// Use the specific assertion for the test case
 			tc.assertSize(t, fi.Size())
 
-			t.Logf("mode %s: successfully compiled %d bytes; progress: %s", tc.name, fi.Size(), progressMsg)
 		})
 	}
 

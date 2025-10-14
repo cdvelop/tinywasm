@@ -36,8 +36,8 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 	w.updateCurrentBuilder(newValue)
 
 	// Check if main WASM file exists before attempting compilation
-	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
-	mainWasmPath := path.Join(rootFolder, w.Config.MainInputFile)
+	sourceDir := path.Join(w.AppRootDir, w.Config.SourceDir)
+	mainWasmPath := path.Join(sourceDir, w.Config.MainInputFile)
 	if _, err := os.Stat(mainWasmPath); err != nil {
 		// File doesn't exist, just report success message without compilation
 		progress(w.getSuccessMessage(newValue))
@@ -68,8 +68,8 @@ func (w *TinyWasm) RecompileMainWasm() error {
 	if w.activeBuilder == nil {
 		return Err("builder not initialized")
 	}
-	rootFolder := path.Join(w.AppRootDir, w.Config.WebFilesRootRelative)
-	mainWasmPath := path.Join(rootFolder, w.Config.MainInputFile)
+	sourceDir := path.Join(w.AppRootDir, w.Config.SourceDir)
+	mainWasmPath := path.Join(sourceDir, w.Config.MainInputFile)
 
 	// Check if main.wasm.go exists
 	if _, err := os.Stat(mainWasmPath); err != nil {

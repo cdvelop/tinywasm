@@ -23,9 +23,10 @@ func TestDebugWasmExecGeneration(t *testing.T) {
 	// Create TinyWasm instance with verbose logging
 	messages := []string{}
 	config := &Config{
-		AppRootDir:                  testDir,
-		WebFilesRootRelative:        "web",
-		WebFilesSubRelativeJsOutput: "theme/js",
+		AppRootDir:          testDir,
+		SourceDir:           "web",
+		OutputDir:           "theme/js",
+		WasmExecJsOutputDir: "theme/js",
 		Logger: func(message ...any) {
 			msg := fmt.Sprint(message...)
 			messages = append(messages, msg)
@@ -42,7 +43,7 @@ func TestDebugWasmExecGeneration(t *testing.T) {
 	}
 
 	// Check if wasm_exec.js was created
-	wasmExecPath := filepath.Join(testDir, config.WebFilesRootRelative, config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+	wasmExecPath := filepath.Join(testDir, config.OutputDir, "wasm_exec.js")
 	t.Logf("Checking path: %s", wasmExecPath)
 
 	info, err := os.Stat(wasmExecPath)

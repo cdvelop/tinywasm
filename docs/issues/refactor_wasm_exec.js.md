@@ -37,9 +37,9 @@ This refactoring proposal aims to simplify and centralize WASM project detection
 func New(c *Config) *TinyWasm {
     // ... existing initialization ...
     
-    // Set default for WebFilesSubRelativeJsOutput if not configured
-    if c.WebFilesSubRelativeJsOutput == "" {
-        c.WebFilesSubRelativeJsOutput = "theme/js"
+    // Set default for WasmExecJsOutputDir if not configured
+    if c.WasmExecJsOutputDir == "" {
+        c.WasmExecJsOutputDir = "theme/js"
     }
     
     // Perform one-time detection at the end
@@ -100,7 +100,7 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 
 ```go
 func (w *TinyWasm) getWasmExecJsOutputPath() string {
-    return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+    return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WasmExecJsOutputDir, "wasm_exec.js")
 }
 
 func (w *TinyWasm) detectFromExistingWasmExecJs() bool {
@@ -252,7 +252,7 @@ func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
 The existing `JavascriptForInitializing()` method already works correctly:
 - Reads from Go/TinyGo installation paths
 - Adds WASM startup code
-- Generates content for output to `WebFilesSubRelativeJsOutput/wasm_exec.js`
+- Generates content for output to `WasmExecJsOutputDir/wasm_exec.js`
 - Uses existing cache mechanism
 
 **No modifications needed** - this function is perfect as-is.
@@ -263,7 +263,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 1. **Remove function pointer fields** from `TinyWasm` struct:
    - Remove `wasmDetectionFuncFromGoFile func(string, string)`
    - Remove `wasmDetectionFuncFromJsFile func(fileName, extension, filePath, event string)`
-2. **Add default configuration** in `New()`: Set `WebFilesSubRelativeJsOutput = "theme/js"` if empty
+2. **Add default configuration** in `New()`: Set `WasmExecJsOutputDir = "theme/js"` if empty
 3. **Create initialization detection methods** reusing logic from `wasmDetectionFuncFromJsFileActive`
 4. **Update New() constructor** to call detection at the end
 5. **Add file management utilities** for wasm_exec.js (non-overwriting)
@@ -306,20 +306,20 @@ The existing `JavascriptForInitializing()` method already works correctly:
 ## Decisions Made (Final)
 
 ### 1. **Output Directory Strategy - RESOLVED** ✅
-- **Decision**: `WebFilesSubRelativeJsOutput` is the **single source of truth** for wasm_exec.js location
-- **Default Configuration**: If `WebFilesSubRelativeJsOutput` is empty → default to `"theme/js"` within `WebFilesRootRelative`
+- **Decision**: `WasmExecJsOutputDir` is the **single source of truth** for wasm_exec.js location
+- **Default Configuration**: If `WasmExecJsOutputDir` is empty → default to `"theme/js"` within `WebFilesRootRelative`
 - **Rationale**: Avoids conflicts with minified output in `WebFilesSubRelative` and provides clear separation
 - **Implementation**: All detection and file management will use this path exclusively
 
 ### 2. **Detection Priority - RESOLVED** ✅
 - **Decision**: Hierarchical detection approach:
-  1. **Primary**: Check for existing `wasm_exec.js` in `WebFilesSubRelativeJsOutput` → determines both project type AND compiler type
+  1. **Primary**: Check for existing `wasm_exec.js` in `WasmExecJsOutputDir` → determines both project type AND compiler type
   2. **Secondary**: If no `wasm_exec.js`, check for `.wasm.go` files → confirms WASM project, defaults to Go compiler
   3. **Fallback**: If neither exists → not a WASM project
 - **Rationale**: Existing `wasm_exec.js` provides the most accurate current configuration
 
 ### 3. **JavascriptForInitializing() Function - CLARIFIED** ✅
-- **Current Behavior**: Creates JavaScript output for `WebFilesSubRelativeJsOutput/wasm_exec.js` by adding WASM startup code
+- **Current Behavior**: Creates JavaScript output for `WasmExecJsOutputDir/wasm_exec.js` by adding WASM startup code
 - **Decision**: **NO CHANGES NEEDED** to this function - it already works correctly
 - **Rationale**: Function already generates the correct output, just need to ensure the source file management works properly
 
@@ -348,11 +348,11 @@ The existing `JavascriptForInitializing()` method already works correctly:
 
 ### ~~1. JavascriptForInitializing() Integration~~ - CLARIFIED ✅
 - **Resolution**: NO CHANGES needed to `JavascriptForInitializing()`
-- **Understanding**: Function creates JS output for `WebFilesSubRelativeJsOutput/wasm_exec.js` by adding WASM startup code
+- **Understanding**: Function creates JS output for `WasmExecJsOutputDir/wasm_exec.js` by adding WASM startup code
 - **Current behavior is correct**: Reads from installation paths, adds startup code, uses existing cache
 
 ### ~~2. Default Configuration Handling~~ - RESOLVED ✅
-- **Resolution**: Default to `"theme/js"` if `WebFilesSubRelativeJsOutput` is empty
+- **Resolution**: Default to `"theme/js"` if `WasmExecJsOutputDir` is empty
 - **Implementation**: Set in `New()` constructor before detection
 
 ### ~~3. File Update Strategy~~ - RESOLVED ✅
@@ -381,7 +381,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 - **Detection Accuracy**: New logic might miss edge cases from current system
   - *Mitigation*: Reuse proven detection logic from `wasmDetectionFuncFromJsFileActive`
   - *Mitigation*: Comprehensive test coverage with various project layouts
-- **Configuration Complexity**: `WebFilesSubRelativeJsOutput` handling
+- **Configuration Complexity**: `WasmExecJsOutputDir` handling
   - *Mitigation*: Sensible defaults, clear validation messages
 - **Performance Impact**: More I/O during initialization
   - *Mitigation*: Efficient file operations, minimal required checks only
@@ -402,7 +402,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 
 1. **Functional Requirements** ✅:
    - ✅ WASM projects detected correctly during initialization (from existing wasm_exec.js or .wasm.go files)
-   - ✅ `wasm_exec.js` created in `WebFilesSubRelativeJsOutput` only when needed (don't overwrite existing)
+   - ✅ `wasm_exec.js` created in `WasmExecJsOutputDir` only when needed (don't overwrite existing)
    - ✅ Mode switching in `Change.go` ensures `wasm_exec.js` availability before compilation
    - ✅ File events trigger compilation only for relevant Go files
    - ✅ `JavascriptForInitializing()` continues working unchanged
@@ -442,7 +442,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 
 ### For Existing Projects
 1. **Automatic Migration**: Detection logic should work transparently
-2. **Configuration Updates**: May need to set `WebFilesSubRelativeJsOutput` if custom layouts are used
+2. **Configuration Updates**: May need to set `WasmExecJsOutputDir` if custom layouts are used
 3. **Cache Clearing**: Existing caches will be automatically updated
 
 ### For Integration Points

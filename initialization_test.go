@@ -33,13 +33,14 @@ func TestInitializationDetectionFromWasmExecJs(t *testing.T) {
 
 	// Create TinyWasm instance
 	config := &Config{
-		AppRootDir:                  testDir,
-		WebFilesRootRelative:        "web",
-		WebFilesSubRelativeJsOutput: "theme/js",
-		BuildFastShortcut:           "f",
-		BuildBugShortcut:            "b",
-		BuildMinimalShortcut:        "m",
-		Logger:                      func(message ...any) {},
+		AppRootDir:           testDir,
+		SourceDir:            "web",
+		OutputDir:            "web/public",
+		WasmExecJsOutputDir:  "web/theme/js",
+		BuildFastShortcut:    "f",
+		BuildBugShortcut:     "b",
+		BuildMinimalShortcut: "m",
+		Logger:               func(message ...any) {},
 	}
 
 	tinyWasm := New(config)
@@ -72,10 +73,11 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 
 	// Create TinyWasm instance
 	config := &Config{
-		AppRootDir:                  testDir,
-		WebFilesRootRelative:        "web",
-		WebFilesSubRelativeJsOutput: "theme/js",
-		Logger:                      func(message ...any) {},
+		AppRootDir:          testDir,
+		SourceDir:           "web",
+		OutputDir:           "theme/js",
+		WasmExecJsOutputDir: "theme/js",
+		Logger:              func(message ...any) {},
 	}
 
 	tinyWasm := New(config)
@@ -92,7 +94,7 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 	}
 
 	// Ensure wasm_exec.js was created in the output path and is non-empty
-	wasmExecPath := filepath.Join(testDir, config.WebFilesRootRelative, config.WebFilesSubRelativeJsOutput, "wasm_exec.js")
+	wasmExecPath := filepath.Join(testDir, config.OutputDir, "wasm_exec.js")
 	info, err := os.Stat(wasmExecPath)
 	if err != nil {
 		t.Fatalf("Expected wasm_exec.js to be created at %s: %v", wasmExecPath, err)
@@ -120,11 +122,12 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 	}
 }
 
-// TestDefaultConfiguration tests that WebFilesSubRelativeJsOutput defaults to "theme/js"
+// TestDefaultConfiguration tests that WasmExecJsOutputDir defaults to "src/web/ui/js"
 func TestDefaultConfiguration(t *testing.T) {
 	config := &Config{
 		AppRootDir:           "/test",
-		WebFilesRootRelative: "web",
+		SourceDir:            "web",
+		OutputDir:            "theme/js",
 		BuildFastShortcut:    "c",
 		BuildBugShortcut:     "d",
 		BuildMinimalShortcut: "p",
@@ -133,9 +136,9 @@ func TestDefaultConfiguration(t *testing.T) {
 
 	tinyWasm := New(config)
 
-	expected := "theme/js"
-	if tinyWasm.WebFilesSubRelativeJsOutput != expected {
-		t.Errorf("Expected WebFilesSubRelativeJsOutput to default to %s, got %s", expected, tinyWasm.WebFilesSubRelativeJsOutput)
+	expected := "src/web/ui/js"
+	if tinyWasm.WasmExecJsOutputDir != expected {
+		t.Errorf("Expected WasmExecJsOutputDir to default to %s, got %s", expected, tinyWasm.WasmExecJsOutputDir)
 	}
 }
 
@@ -153,13 +156,14 @@ func TestNoWasmProjectDetected(t *testing.T) {
 
 	// Create TinyWasm instance
 	config := &Config{
-		AppRootDir:                  testDir,
-		WebFilesRootRelative:        "web",
-		WebFilesSubRelativeJsOutput: "theme/js",
-		BuildFastShortcut:           "f",
-		BuildBugShortcut:            "b",
-		BuildMinimalShortcut:        "m",
-		Logger:                      func(message ...any) {},
+		AppRootDir:           testDir,
+		SourceDir:            "web",
+		OutputDir:            "theme/js",
+		WasmExecJsOutputDir:  "theme/js",
+		BuildFastShortcut:    "f",
+		BuildBugShortcut:     "b",
+		BuildMinimalShortcut: "m",
+		Logger:               func(message ...any) {},
 	}
 
 	tinyWasm := New(config)

@@ -32,28 +32,7 @@ func (w *TinyWasm) handleTinyGoMissing() error {
 
 // verifyTinyGoInstallationStatus checks and caches TinyGo installation status
 func (w *TinyWasm) verifyTinyGoInstallationStatus() {
-	if err := w.VerifyTinyGoInstallation(); err != nil {
-		w.tinyGoInstalled = false
-		if w.Logger != nil {
-			w.Logger("Warning: TinyGo not available:", err)
-		}
-	} else {
-		w.tinyGoInstalled = true
-
-		// If TinyGo is installed, check its version
-		version, err := w.GetTinyGoVersion()
-		if err != nil {
-			w.tinyGoInstalled = false
-			if w.Logger != nil {
-				w.Logger("Warning: TinyGo version check failed:", err)
-			}
-		} else {
-			w.tinyGoInstalled = true
-			if w.Logger != nil {
-				w.Logger("Info: TinyGo installation verified", version)
-			}
-		}
-	}
+	w.tinyGoInstalled = w.VerifyTinyGoInstallation() == nil
 }
 
 // VerifyTinyGoProjectCompatibility checks if the project is compatible with TinyGo compilation

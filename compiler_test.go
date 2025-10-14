@@ -12,14 +12,16 @@ import (
 func TestShouldCompileToWasm(t *testing.T) {
 	// Setup test environment
 	rootDir := "test"
-	webDir := filepath.Join(rootDir, "wasmTest")
-	defer os.RemoveAll(webDir)
+	sourceDir := filepath.Join(rootDir, "wasmTest")
+	outputDir := filepath.Join(rootDir, "output")
+	defer os.RemoveAll(rootDir)
 
-	// modules support removed; tests operate on webDir directly
+	// modules support removed; tests operate on sourceDir directly
 	var logMessages []string
 	config := &Config{
-		WebFilesRootRelative: webDir,
-		WebFilesSubRelative:  "public",
+		AppRootDir: rootDir,
+		SourceDir:  "wasmTest",
+		OutputDir:  "output",
 		Logger: func(message ...any) {
 			logMessages = append(logMessages, fmt.Sprint(message...))
 		},
@@ -32,21 +34,20 @@ func TestShouldCompileToWasm(t *testing.T) {
 		filePath string
 		expected bool
 	}{ // Main WASM file cases
-		{"Main WASM file", "main.wasm.go", filepath.Join(webDir, "main.wasm.go"), true}, // main.wasm.go in web root
-		{"Main WASM file in different location", "main.wasm.go", filepath.Join("project", "main.wasm.go"), true},
+		{"Main WASM file", "main.go", filepath.Join(sourceDir, "main.go"), true}, // main.go in source root
+		{"Main WASM file in different location", "main.go", filepath.Join("project", "main.go"), true},
 
 		// Module WASM files
 		// .wasm.go files anywhere should trigger compilation
-		{"Any WASM file", "users.wasm.go", filepath.Join(webDir, "users.wasm.go"), true},
-		{"Another WASM file", "auth.wasm.go", filepath.Join(webDir, "auth.wasm.go"), true},
+		{"Any WASM file", "users.wasm.go", filepath.Join(sourceDir, "users.wasm.go"), true},
+		{"Another WASM file", "auth.wasm.go", filepath.Join(sourceDir, "auth.wasm.go"), true},
 
 		// Non-Go files (should NOT compile)
-		{"JavaScript file", "script.js", filepath.Join(webDir, "public", "js", "script.js"), false},
-		{"CSS file", "style.css", filepath.Join(webDir, "public", "css", "style.css"), false},
-		{"HTML file", "index.html", filepath.Join(webDir, "public", "index.html"), false},
+		{"JavaScript file", "script.js", filepath.Join(outputDir, "js", "script.js"), false},
+		{"CSS file", "style.css", filepath.Join(outputDir, "css", "style.css"), false},
+		{"HTML file", "index.html", filepath.Join(outputDir, "index.html"), false},
 
 		// Root level files (should NOT compile)
-		{"Root level Go file", "main.go", "main.go", false},
 		{"Root level config file", "config.go", "config.go", false},
 	}
 
@@ -100,8 +101,9 @@ func TestCompilerComparison(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var logMessages []string
 			config := &Config{
-				WebFilesRootRelative: webDir,
-				WebFilesSubRelative:  "public",
+				AppRootDir: rootDir,
+				SourceDir:  "wasmTest",
+				OutputDir:  "output",
 				Logger: func(message ...any) {
 					logMessages = append(logMessages, fmt.Sprint(message...))
 				},

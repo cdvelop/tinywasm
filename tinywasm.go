@@ -36,13 +36,20 @@ type Config struct {
 
 	// AppRootDir specifies the application root directory (absolute).
 	// e.g., "/home/user/project". If empty, defaults to "." to preserve existing behavior.
-	AppRootDir                  string
-	WebFilesRootRelative        string // root web folder (relative) eg: "web"
-	WebFilesSubRelative         string // subfolder under root (relative) eg: "public"
-	WebFilesSubRelativeJsOutput string // output path for js files (relative) eg: "theme/js"
-	MainInputFile               string // main input file for WASM compilation (default: "main.wasm.go")
-	OutputName                  string // output name for WASM file (default: "main")
-	Logger                      func(message ...any)
+	AppRootDir string
+
+	// SourceDir specifies the directory containing the Go source for the webclient (relative to AppRootDir).
+	// e.g., "src/cmd/webclient"
+	SourceDir string
+
+	// OutputDir specifies the directory for WASM and related assets (relative to AppRootDir).
+	// e.g., "src/web/public"
+	OutputDir string
+
+	WasmExecJsOutputDir string // output dir for wasm_exec.js file (relative) eg: "src/web/ui/js", "theme/js"
+	MainInputFile       string // main input file for WASM compilation (default: "main.wasm.go")
+	OutputName          string // output name for WASM file (default: "main")
+	Logger              func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
 	// NEW: Shortcut configuration (default: "f", "b", "m")
@@ -62,14 +69,15 @@ type Config struct {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
 	return &Config{
-		AppRootDir:                  ".",
-		WebFilesRootRelative:        "web",
-		WebFilesSubRelativeJsOutput: "theme/js",
-		MainInputFile:               "main.wasm.go",
-		OutputName:                  "main",
-		BuildFastShortcut:           "f",
-		BuildBugShortcut:            "b",
-		BuildMinimalShortcut:        "m",
+		AppRootDir:           ".",
+		SourceDir:            "src/cmd/webclient",
+		OutputDir:            "src/web/public",
+		WasmExecJsOutputDir:  "src/web/ui/js",
+		MainInputFile:        "main.go",
+		OutputName:           "main",
+		BuildFastShortcut:    "f",
+		BuildBugShortcut:     "b",
+		BuildMinimalShortcut: "m",
 		Logger: func(message ...any) {
 			// Default logger: do nothing (silent operation)
 		},
@@ -131,9 +139,9 @@ func New(c *Config) *TinyWasm {
 		w.currentMode = w.Config.BuildFastShortcut
 	}
 
-	// Set default for WebFilesSubRelativeJsOutput if not configured
-	if w.Config.WebFilesSubRelativeJsOutput == "" {
-		w.Config.WebFilesSubRelativeJsOutput = "theme/js"
+	// Set default for WasmExecJsOutputDir if not configured
+	if w.Config.WasmExecJsOutputDir == "" {
+		w.Config.WasmExecJsOutputDir = "src/web/ui/js"
 	}
 
 	// Check TinyGo installation status
@@ -227,9 +235,9 @@ func (w *TinyWasm) detectFromGoFiles() bool {
 
 		fileName := info.Name()
 
-		// Check for main.wasm.go file (strong indicator of WASM project)
-		// Compare both the relative path and just the filename
-		if relPath == w.Config.MainInputFile || fileName == w.Config.MainInputFile {
+		// Check for main input file in the source directory (strong indicator of WASM project)
+		expectedPath := filepath.Join(w.Config.SourceDir, w.Config.MainInputFile)
+		if relPath == expectedPath {
 			wasmFilesFound = true
 			return filepath.SkipAll // Found main file, can stop walking
 		}
