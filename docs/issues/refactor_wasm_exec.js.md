@@ -99,12 +99,12 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 ### 3. wasm_exec.js File Management (Final)
 
 ```go
-func (w *TinyWasm) getWasmExecJsOutputPath() string {
+func (w *TinyWasm) WasmExecJsOutputPath() string {
     return path.Join(w.Config.AppRootDir, w.Config.WebFilesRootRelative, w.Config.WasmExecJsOutputDir, "wasm_exec.js")
 }
 
 func (w *TinyWasm) detectFromExistingWasmExecJs() bool {
-    wasmExecPath := w.getWasmExecJsOutputPath()
+    wasmExecPath := w.WasmExecJsOutputPath()
     
     // Check if file exists
     if _, err := os.Stat(wasmExecPath); err != nil {
@@ -167,7 +167,7 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 // overwrites any existing file. This changes the previous "create-only" behavior to ensure
 // the generated JS initialization reflects the current compiler mode and configuration.
 func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() bool {
-    outputPath := w.getWasmExecJsOutputPath()
+    outputPath := w.WasmExecJsOutputPath()
     
     // Check if file already exists - do not overwrite
     if _, err := os.Stat(outputPath); err == nil {

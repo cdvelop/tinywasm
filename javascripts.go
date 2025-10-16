@@ -38,8 +38,8 @@ func wasm_execTinyGoSignatures() []string {
 	}
 }
 
-// getWasmExecJsOutputPath returns the output path for wasm_exec.js
-func (w *TinyWasm) getWasmExecJsOutputPath() string {
+// WasmExecJsOutputPath returns the output path for wasm_exec.js
+func (w *TinyWasm) WasmExecJsOutputPath() string {
 	return path.Join(w.Config.AppRootDir, w.Config.WasmExecJsOutputDir, "wasm_exec.js")
 }
 
@@ -332,7 +332,7 @@ func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
 		return
 	}
 
-	outputPath := w.getWasmExecJsOutputPath()
+	outputPath := w.WasmExecJsOutputPath()
 
 	w.Logger("DEBUG: Writing/overwriting wasm_exec.js to output path:", outputPath)
 
@@ -434,7 +434,7 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 
 // detectFromExistingWasmExecJs checks for existing wasm_exec.js file
 func (w *TinyWasm) detectFromExistingWasmExecJs() bool {
-	wasmExecPath := w.getWasmExecJsOutputPath()
+	wasmExecPath := w.WasmExecJsOutputPath()
 
 	// Check if file exists
 	if _, err := os.Stat(wasmExecPath); err != nil {
