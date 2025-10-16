@@ -356,7 +356,7 @@ func (w *TinyWasm) wasmProjectWriteOrReplaceWasmExecJsOutput() {
 		return
 	}
 
-	w.Logger(" DEBUG: Wrote/overwrote JavaScript initialization file in output directory")
+	w.Logger("DEBUG: Wrote/overwrote JavaScript initialization file in output directory")
 }
 
 // analyzeWasmExecJsContent analyzes existing wasm_exec.js to determine compiler type
