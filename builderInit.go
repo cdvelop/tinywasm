@@ -2,6 +2,8 @@ package tinywasm
 
 import (
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cdvelop/gobuild"
@@ -88,7 +90,28 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 	w.currentMode = mode
 }
 
-// returns the full path to the final output file eg: web/build/main.wasm
+// OutputRelativePath returns the RELATIVE path to the final output file
+// eg: "deploy/edgeworker/app.wasm" (relative to AppRootDir)
+// This is used by file watchers to identify output files that should be ignored.
+// The returned path always uses forward slashes (/) for consistency across platforms.
 func (w *TinyWasm) OutputRelativePath() string {
-	return w.activeBuilder.FinalOutputPath()
+	// FinalOutputPath() returns absolute path like: /tmp/test/deploy/edgeworker/app.wasm
+	// We need to extract the relative portion: deploy/edgeworker/app.wasm
+	fullPath := w.activeBuilder.FinalOutputPath()
+
+	// Remove AppRootDir prefix to get relative path
+	if strings.HasPrefix(fullPath, w.Config.AppRootDir) {
+		relPath := strings.TrimPrefix(fullPath, w.Config.AppRootDir)
+		// Remove leading separator (/ or \)
+		relPath = strings.TrimPrefix(relPath, string(filepath.Separator))
+		relPath = strings.TrimPrefix(relPath, "/")  // Handle Unix paths
+		relPath = strings.TrimPrefix(relPath, "\\") // Handle Windows paths
+		// Normalize to forward slashes for consistency (replace all backslashes)
+		return strings.ReplaceAll(relPath, "\\", "/")
+	}
+
+	// Fallback: construct from config values (which are already relative)
+	// Normalize to forward slashes for consistency
+	result := filepath.Join(w.Config.OutputDir, w.Config.OutputName+".wasm")
+	return strings.ReplaceAll(result, "\\", "/")
 }
