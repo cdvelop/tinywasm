@@ -7,11 +7,11 @@ import (
 	. "github.com/cdvelop/tinystring"
 )
 
-func (w *TinyWasm) Shortcuts() map[string]string {
-	return map[string]string{
-		w.BuildLargeSizeShortcut:  Translate(D.Mode, "Large", "stLib").String(),
-		w.BuildMediumSizeShortcut: Translate(D.Mode, "Medium", "tinygo").String(),
-		w.BuildSmallSizeShortcut:  Translate(D.Mode, "Small", "tinygo").String(),
+func (w *TinyWasm) Shortcuts() []map[string]string {
+	return []map[string]string{
+		{w.BuildLargeSizeShortcut: Translate(D.Mode, "Large", "stLib").String()},
+		{w.BuildMediumSizeShortcut: Translate(D.Mode, "Medium", "tinygo").String()},
+		{w.BuildSmallSizeShortcut: Translate(D.Mode, "Small", "tinygo").String()},
 	}
 }
 
