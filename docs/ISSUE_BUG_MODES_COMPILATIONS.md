@@ -52,15 +52,15 @@ This shows:
 
 ### 1. Value() Method Issue
 
-The `Value()` method compares `w.activeBuilder` with `w.builderCoding`, `w.builderDebug`, and `w.builderProduction` using reference equality (`==`). However, all builders are instances of `*gobuild.GoBuild`, so the comparison may be failing.
+The `Value()` method compares `w.activeBuilder` with `w.builderLarge`, `w.builderMedium`, and `w.builderSmall` using reference equality (`==`). However, all builders are instances of `*gobuild.GoBuild`, so the comparison may be failing.
 
 ```go
 func (w *TinyWasm) Value() string {
-    if w.activeBuilder == w.builderCoding {
-        return w.Config.BuildFastShortcut
+    if w.activeBuilder == w.builderLarge {
+        return w.Config.BuildLargeSizeShortcut
     }
     // ... other comparisons
-    return w.Config.BuildFastShortcut // fallback
+    return w.Config.BuildLargeSizeShortcut // fallback
 }
 ```
 
@@ -86,7 +86,7 @@ type TinyWasm struct {
 
 func (w *TinyWasm) Value() string {
     if w.currentMode == "" {
-        return w.Config.BuildFastShortcut // default
+        return w.Config.BuildLargeSizeShortcut // default
     }
     return w.currentMode
 }

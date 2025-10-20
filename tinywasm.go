@@ -13,10 +13,10 @@ type TinyWasm struct {
 	*Config
 
 	// RENAME & ADD: 4 builders for complete mode coverage
-	builderCoding     *gobuild.GoBuild // Go standard - fast compilation
-	builderDebug      *gobuild.GoBuild // TinyGo debug - easier debugging
-	builderProduction *gobuild.GoBuild // TinyGo production - smallest size
-	activeBuilder     *gobuild.GoBuild // Current active builder
+	builderLarge  *gobuild.GoBuild // Go standard - fast compilation
+	builderMedium *gobuild.GoBuild // TinyGo debug - easier debugging
+	builderSmall  *gobuild.GoBuild // TinyGo production - smallest size
+	activeBuilder *gobuild.GoBuild // Current active builder
 
 	// EXISTING: Keep for installation detection (no compilerMode needed - activeBuilder handles state)
 	tinyGoCompiler  bool // Enable TinyGo compiler (default: false for faster development)
@@ -24,11 +24,11 @@ type TinyWasm struct {
 	tinyGoInstalled bool // Cached TinyGo installation status
 
 	// NEW: Explicit mode tracking to fix Value() method
-	currentMode string // Track current mode explicitly ("c", "d", "p")
+	currentMode string // Track current mode explicitly ("L", "M", "S")
 
-	modeC_go_wasm_exec_cache     string // cache wasm_exec.js file content per mode coding
-	modeD_tinygo_wasm_exec_cache string // cache wasm_exec.js file content per mode debug
-	modeP_tinygo_wasm_exec_cache string // cache wasm_exec.js file content per mode production
+	mode_large_go_wasm_exec_cache      string // cache wasm_exec.js file content per mode large
+	mode_medium_tinygo_wasm_exec_cache string // cache wasm_exec.js file content per mode medium
+	mode_small_tinygo_wasm_exec_cache  string // cache wasm_exec.js file content per mode small
 }
 
 // Config holds configuration for WASM compilation
@@ -52,10 +52,9 @@ type Config struct {
 	Logger              func(message ...any)
 	// TinyGoCompiler removed: tinyGoCompiler (private) in TinyWasm is used instead to avoid confusion
 
-	// NEW: Shortcut configuration (default: "f", "b", "m")
-	BuildFastShortcut    string // "f" (fast) compile fast with go
-	BuildBugShortcut     string // "b" (bugs) compile with tinygo debug
-	BuildMinimalShortcut string // "m" (minimal) compile with tinygo minimal binary size
+	BuildLargeSizeShortcut  string // "L" (Large) compile with go
+	BuildMediumSizeShortcut string // "M" (Medium) compile with tinygo debug
+	BuildSmallSizeShortcut  string // "S" (Small) compile with tinygo minimal binary size
 
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
@@ -69,15 +68,15 @@ type Config struct {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
 	return &Config{
-		AppRootDir:           ".",
-		SourceDir:            "src/cmd/webclient",
-		OutputDir:            "src/web/public",
-		WasmExecJsOutputDir:  "src/web/ui/js",
-		MainInputFile:        "main.go",
-		OutputName:           "main",
-		BuildFastShortcut:    "f",
-		BuildBugShortcut:     "b",
-		BuildMinimalShortcut: "m",
+		AppRootDir:              ".",
+		SourceDir:               "src/cmd/webclient",
+		OutputDir:               "src/web/public",
+		WasmExecJsOutputDir:     "src/web/ui/js",
+		MainInputFile:           "main.go",
+		OutputName:              "main",
+		BuildLargeSizeShortcut:  "L",
+		BuildMediumSizeShortcut: "M",
+		BuildSmallSizeShortcut:  "S",
 		Logger: func(message ...any) {
 			// Default logger: do nothing (silent operation)
 		},
@@ -107,14 +106,14 @@ func New(c *Config) *TinyWasm {
 	// Use NewConfig() as the authoritative source of defaults and copy any
 	// missing shortcut values from it.
 	defaults := NewConfig()
-	if c.BuildFastShortcut == "" {
-		c.BuildFastShortcut = defaults.BuildFastShortcut
+	if c.BuildLargeSizeShortcut == "" {
+		c.BuildLargeSizeShortcut = defaults.BuildLargeSizeShortcut
 	}
-	if c.BuildBugShortcut == "" {
-		c.BuildBugShortcut = defaults.BuildBugShortcut
+	if c.BuildMediumSizeShortcut == "" {
+		c.BuildMediumSizeShortcut = defaults.BuildMediumSizeShortcut
 	}
-	if c.BuildMinimalShortcut == "" {
-		c.BuildMinimalShortcut = defaults.BuildMinimalShortcut
+	if c.BuildSmallSizeShortcut == "" {
+		c.BuildSmallSizeShortcut = defaults.BuildSmallSizeShortcut
 	}
 	if c.MainInputFile == "" {
 		c.MainInputFile = defaults.MainInputFile
@@ -132,11 +131,11 @@ func New(c *Config) *TinyWasm {
 		tinyGoInstalled: false, // Verified on first use
 
 		// Initialize with default mode
-		currentMode: c.BuildFastShortcut, // Start with coding mode
+		currentMode: c.BuildLargeSizeShortcut, // Start with coding mode
 	}
 
 	if w.currentMode == "" {
-		w.currentMode = w.Config.BuildFastShortcut
+		w.currentMode = w.Config.BuildLargeSizeShortcut
 	}
 
 	// Set default for WasmExecJsOutputDir if not configured
@@ -181,7 +180,7 @@ func (w *TinyWasm) Label() string {
 func (w *TinyWasm) Value() string {
 	// Use explicit mode tracking instead of pointer comparison
 	if w.currentMode == "" {
-		return w.Config.BuildFastShortcut // Default to coding mode
+		return w.Config.BuildLargeSizeShortcut // Default to coding mode
 	}
 	return w.currentMode
 }
@@ -199,7 +198,7 @@ func (w *TinyWasm) detectProjectConfiguration() {
 		//w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
 		w.wasmProject = true
 		w.tinyGoCompiler = false
-		w.currentMode = w.Config.BuildFastShortcut
+		w.currentMode = w.Config.BuildLargeSizeShortcut
 
 		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
 		// This writes the initialization JS so downstream flows (tests/compile) have it.

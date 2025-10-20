@@ -93,43 +93,43 @@ func main() {
 	}
 
 	// Initial state should be coding mode
-	verifyHeader("f", "After initial creation")
+	verifyHeader("L", "After initial creation")
 
 	// Step 2: Change to debugging mode
 	t.Log("=== Changing to debugging mode ===")
 	progressCb := func(msgs ...any) {
 		// Just capture progress messages
 	}
-	w.Change(w.Config.BuildBugShortcut, progressCb)
+	w.Change(w.Config.BuildMediumSizeShortcut, progressCb)
 
-	if w.Value() != "b" {
-		t.Errorf("Expected mode 'b', got '%s'", w.Value())
+	if w.Value() != "M" {
+		t.Errorf("Expected mode 'M', got '%s'", w.Value())
 	}
-	verifyHeader("b", "After changing to debugging mode")
+	verifyHeader("M", "After changing to debugging mode")
 
 	// Step 3: THE CRITICAL TEST - Change to production mode
 	t.Log("=== Changing to production mode (THE BUG TEST) ===")
-	w.Change(w.Config.BuildMinimalShortcut, progressCb)
+	w.Change(w.Config.BuildSmallSizeShortcut, progressCb)
 
-	if w.Value() != "m" {
-		t.Errorf("Expected mode 'm', got '%s'", w.Value())
+	if w.Value() != "S" {
+		t.Errorf("Expected mode 'S', got '%s'", w.Value())
 	}
 
 	// This is where the bug should be detected
-	verifyHeader("m", "After changing to production mode (CRITICAL)")
+	verifyHeader("S", "After changing to production mode (CRITICAL)")
 
 	// Step 4: Test back and forth to ensure robustness
 	t.Log("=== Testing mode switching robustness ===")
 
 	// Back to debugging
-	w.Change(w.Config.BuildBugShortcut, progressCb)
-	verifyHeader("b", "Back to debugging mode")
+	w.Change(w.Config.BuildMediumSizeShortcut, progressCb)
+	verifyHeader("M", "Back to debugging mode")
 
 	// Back to production
-	w.Change(w.Config.BuildMinimalShortcut, progressCb)
-	verifyHeader("m", "Back to production mode (second time)")
+	w.Change(w.Config.BuildSmallSizeShortcut, progressCb)
+	verifyHeader("S", "Back to production mode (second time)")
 
 	// Back to coding
-	w.Change(w.Config.BuildFastShortcut, progressCb)
-	verifyHeader("f", "Back to coding mode")
+	w.Change(w.Config.BuildLargeSizeShortcut, progressCb)
+	verifyHeader("L", "Back to coding mode")
 }

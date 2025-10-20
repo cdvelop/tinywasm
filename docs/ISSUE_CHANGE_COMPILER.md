@@ -73,9 +73,9 @@ func (w *TinyWasm) Timeout() time.Duration {
 // NewConfig creates a TinyWasm Config with sensible defaults
 func NewConfig() *Config {
     return &Config{
-        BuildFastShortcut:     "c",
-        BuildBugShortcut:  "d",
-        BuildMinimalShortcut: "p",
+        BuildLargeSizeShortcut:     "c",
+        BuildMediumSizeShortcut:  "d",
+        BuildSmallSizeShortcut: "p",
         TinyGoCompiler:     false, // Default to fast Go compilation
         FrontendPrefix:     []string{"f.", "front."},
     }
@@ -86,11 +86,11 @@ func NewConfig() *Config {
 ```go
 func (w *TinyWasm) getSuccessMessage(mode string) string {
     switch mode {
-    case w.Config.BuildFastShortcut:
+    case w.Config.BuildLargeSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
-    case w.Config.BuildBugShortcut:
+    case w.Config.BuildMediumSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"
-    case w.Config.BuildMinimalShortcut:
+    case w.Config.BuildSmallSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
         return Translate(D.Invalid, D.Mode)
@@ -152,9 +152,9 @@ type TinyWasm struct {
     mainInputFile string
 
     // RENAME & ADD: 4 builders for complete mode coverage
-    builderCoding     *gobuild.GoBuild // Go standard - fast compilation
-    builderDebug      *gobuild.GoBuild // TinyGo debug - easier debugging  
-    builderProduction *gobuild.GoBuild // TinyGo production - smallest size
+    builderLarge     *gobuild.GoBuild // Go standard - fast compilation
+    builderMedium      *gobuild.GoBuild // TinyGo debug - easier debugging  
+    builderSmall *gobuild.GoBuild // TinyGo production - smallest size
     activeBuilder     *gobuild.GoBuild // Current active builder
 
     // EXISTING: Keep for installation detection (no compilerMode needed - activeBuilder handles state)
@@ -172,9 +172,9 @@ type Config struct {
     // ... existing fields ...
 
     // NEW: Shortcut configuration (default: "c", "d", "p")
-    BuildFastShortcut    string // default "c" 
-    BuildBugShortcut string // default "d"
-    BuildMinimalShortcut string // default "p"
+    BuildLargeSizeShortcut    string // default "c" 
+    BuildMediumSizeShortcut string // default "d"
+    BuildSmallSizeShortcut string // default "p"
 }
 ```
 
@@ -226,14 +226,14 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
     // 2. Set activeBuilder based on mode
     switch mode {
-    case w.Config.BuildFastShortcut:     // "c"
-        w.activeBuilder = w.builderCoding
-    case w.Config.BuildBugShortcut:  // "d" 
-        w.activeBuilder = w.builderDebug
-    case w.Config.BuildMinimalShortcut: // "p"
-        w.activeBuilder = w.builderProduction
+    case w.Config.BuildLargeSizeShortcut:     // "c"
+        w.activeBuilder = w.builderLarge
+    case w.Config.BuildMediumSizeShortcut:  // "d" 
+        w.activeBuilder = w.builderMedium
+    case w.Config.BuildSmallSizeShortcut: // "p"
+        w.activeBuilder = w.builderSmall
     default:
-        w.activeBuilder = w.builderCoding // fallback to coding mode
+        w.activeBuilder = w.builderLarge // fallback to coding mode
     }
 }
 
@@ -277,7 +277,7 @@ func (w *TinyWasm) builderWasmInit() {
         }
         return args
     }
-    w.builderCoding = gobuild.New(&codingConfig)
+    w.builderLarge = gobuild.New(&codingConfig)
 
     // Configure Debug builder (TinyGo debug-friendly)
     debugConfig := baseConfig
@@ -289,7 +289,7 @@ func (w *TinyWasm) builderWasmInit() {
         }
         return args
     }
-    w.builderDebug = gobuild.New(&debugConfig)
+    w.builderMedium = gobuild.New(&debugConfig)
 
     // Configure Production builder (TinyGo optimized)
     prodConfig := baseConfig
@@ -301,10 +301,10 @@ func (w *TinyWasm) builderWasmInit() {
         }
         return args
     }
-    w.builderProduction = gobuild.New(&prodConfig)
+    w.builderSmall = gobuild.New(&prodConfig)
 
     // Set initial mode and active builder (default to coding mode)
-    w.activeBuilder = w.builderCoding // Default: fast development
+    w.activeBuilder = w.builderLarge // Default: fast development
 }
 ```
 
@@ -315,22 +315,22 @@ func (w *TinyWasm) builderWasmInit() {
 func (w *TinyWasm) getCurrentMode() string {
     // Determine current mode based on activeBuilder
     switch w.activeBuilder {
-    case w.builderCoding:
-        return w.Config.BuildFastShortcut     // "c"
-    case w.builderDebug:
-        return w.Config.BuildBugShortcut  // "d"
-    case w.builderProduction:
-        return w.Config.BuildMinimalShortcut // "p"
+    case w.builderLarge:
+        return w.Config.BuildLargeSizeShortcut     // "c"
+    case w.builderMedium:
+        return w.Config.BuildMediumSizeShortcut  // "d"
+    case w.builderSmall:
+        return w.Config.BuildSmallSizeShortcut // "p"
     default:
-        return w.Config.BuildFastShortcut     // fallback
+        return w.Config.BuildLargeSizeShortcut     // fallback
     }
 }
 
 func (w *TinyWasm) validateMode(mode string) error {
     validModes := []string{
-        w.Config.BuildFastShortcut,    // "c"
-        w.Config.BuildBugShortcut, // "d" 
-        w.Config.BuildMinimalShortcut, // "p"
+        w.Config.BuildLargeSizeShortcut,    // "c"
+        w.Config.BuildMediumSizeShortcut, // "d" 
+        w.Config.BuildSmallSizeShortcut, // "p"
     }
     
     for _, valid := range validModes {
@@ -368,11 +368,11 @@ Add these terms to TinyString dictionary if not present:
 func (w *TinyWasm) getSuccessMessage(mode string) string {
     // Import: "github.com/cdvelop/tinystring"
     switch mode {
-    case w.Config.BuildFastShortcut:
+    case w.Config.BuildLargeSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Coding)      // "Switching Mode Coding"
-    case w.Config.BuildBugShortcut:
+    case w.Config.BuildMediumSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Debugging)   // "Switching Mode Debugging"  
-    case w.Config.BuildMinimalShortcut:
+    case w.Config.BuildSmallSizeShortcut:
         return Translate(D.Switching, D.Mode, D.Production)  // "Switching Mode Production"
     default:
         return Translate(D.Invalid, D.Mode)                  // "Invalid Mode"
@@ -385,7 +385,7 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 #### TinyGo Installation Check
 ```go
 func (w *TinyWasm) requiresTinyGo(mode string) bool {
-    return mode == w.Config.BuildBugShortcut || mode == w.Config.BuildMinimalShortcut
+    return mode == w.Config.BuildMediumSizeShortcut || mode == w.Config.BuildSmallSizeShortcut
 }
 
 func (w *TinyWasm) handleTinyGoMissing(mode string) error {

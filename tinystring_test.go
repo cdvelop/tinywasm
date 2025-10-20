@@ -18,9 +18,9 @@ func TestTinyStringMessages(t *testing.T) {
 			mode     string
 			expected []string // Words that should appear in the message
 		}{
-			{"f", []string{"Switching", "coding", "mode"}},
-			{"b", []string{"Switching", "debugging", "mode"}},
-			{"m", []string{"Switching", "production", "mode"}},
+			{"L", []string{"Switching", "coding", "mode"}},
+			{"M", []string{"Switching", "debugging", "mode"}},
+			{"S", []string{"Switching", "production", "mode"}},
 		}
 
 		for _, test := range tests {
@@ -65,7 +65,7 @@ func TestTinyStringMessages(t *testing.T) {
 
 		// Test valid mode change using progress callback
 		var got string
-		tw.Change("f", func(msgs ...any) {
+		tw.Change("L", func(msgs ...any) {
 			if len(msgs) > 0 {
 				got = fmt.Sprint(msgs...)
 			}
@@ -87,8 +87,8 @@ func TestTinyStringMessages(t *testing.T) {
 
 		// The progress callback may produce an empty string depending on the error type.
 		// Ensure that the current value did not change and that validateMode reports an error.
-		if tw.Value() != "f" {
-			t.Errorf("Expected compiler mode to remain 'f' after invalid change, got: %s", tw.Value())
+		if tw.Value() != "L" {
+			t.Errorf("Expected compiler mode to remain 'L' after invalid change, got: %s", tw.Value())
 		}
 
 		if err := tw.validateMode("invalid"); err == nil {

@@ -194,14 +194,14 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
     mode := h.Value()
 
     // Return appropriate cached content if available
-    if mode == h.Config.BuildFastShortcut && h.modeC_go_wasm_exec_cache != "" {
-        return h.modeC_go_wasm_exec_cache, nil
+    if mode == h.Config.BuildLargeSizeShortcut && h.mode_large_go_wasm_exec_cache != "" {
+        return h.mode_large_go_wasm_exec_cache, nil
     }
-    if mode == h.Config.BuildBugShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
-        return h.modeD_tinygo_wasm_exec_cache, nil
+    if mode == h.Config.BuildMediumSizeShortcut && h.mode_medium_tinygo_wasm_exec_cache != "" {
+        return h.mode_medium_tinygo_wasm_exec_cache, nil
     }
-    if mode == h.Config.BuildMinimalShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
-        return h.modeP_tinygo_wasm_exec_cache, nil
+    if mode == h.Config.BuildSmallSizeShortcut && h.mode_small_tinygo_wasm_exec_cache != "" {
+        return h.mode_small_tinygo_wasm_exec_cache, nil
     }
 
     // ✨ NEW: Get raw content from embedded assets instead of system paths

@@ -9,15 +9,19 @@ import (
 
 func (w *TinyWasm) Shortcuts() map[string]string {
 	return map[string]string{
-		w.BuildFastShortcut:    Translate(D.Mode, "Fast", "stLib").String(),
-		w.BuildBugShortcut:     Translate(D.Mode, "Debugging", "tinygo").String(),
-		w.BuildMinimalShortcut: Translate(D.Mode, "Minimal", "tinygo").String(),
+		w.BuildLargeSizeShortcut:  Translate(D.Mode, "Large", "stLib").String(),
+		w.BuildMediumSizeShortcut: Translate(D.Mode, "Medium", "tinygo").String(),
+		w.BuildSmallSizeShortcut:  Translate(D.Mode, "Small", "tinygo").String(),
 	}
 }
 
 // Change updates the compiler mode for TinyWasm and reports progress via the provided callback.
 // Implements the HandlerEdit interface: Change(newValue string, progress func(msgs ...any))
 func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
+
+	// Normalize input: trim spaces and convert to uppercase so users can
+	// provide lowercase shortcuts (e.g., "l") without confusing Shortcuts().
+	newValue = Convert(newValue).ToUpper().String()
 
 	// Validate mode
 	if err := w.validateMode(newValue); err != nil {
@@ -82,10 +86,14 @@ func (w *TinyWasm) RecompileMainWasm() error {
 
 // validateMode validates if the provided mode is supported
 func (w *TinyWasm) validateMode(mode string) error {
+	// Ensure mode is uppercase to match configured shortcuts which are
+	// expected to be single uppercase letters by default.
+	mode = Convert(mode).ToUpper().String()
+
 	validModes := []string{
-		w.Config.BuildFastShortcut,    // "c"
-		w.Config.BuildBugShortcut,     // "d"
-		w.Config.BuildMinimalShortcut, // "p"
+		Convert(w.Config.BuildLargeSizeShortcut).ToUpper().String(),
+		Convert(w.Config.BuildMediumSizeShortcut).ToUpper().String(),
+		Convert(w.Config.BuildSmallSizeShortcut).ToUpper().String(),
 	}
 
 	for _, valid := range validModes {
@@ -94,18 +102,18 @@ func (w *TinyWasm) validateMode(mode string) error {
 		}
 	}
 
-	return Err(D.Invalid, "mode", mode, "valid modes:", validModes)
+	return Err(D.Mode, ":", mode, D.Invalid, D.Valid, ":", validModes)
 }
 
 // getSuccessMessage returns appropriate success message for mode
 func (w *TinyWasm) getSuccessMessage(mode string) string {
 	var msg string
 	switch mode {
-	case w.Config.BuildFastShortcut:
+	case w.Config.BuildLargeSizeShortcut:
 		msg = Translate("Switching", "to", "coding", "mode").String()
-	case w.Config.BuildBugShortcut:
+	case w.Config.BuildMediumSizeShortcut:
 		msg = Translate("Switching", "to", "debugging", "mode").String()
-	case w.Config.BuildMinimalShortcut:
+	case w.Config.BuildSmallSizeShortcut:
 		msg = Translate("Switching", "to", "production", "mode").String()
 	default:
 		msg = Translate(D.Invalid, "mode").String()
@@ -114,11 +122,11 @@ func (w *TinyWasm) getSuccessMessage(mode string) string {
 	// Fallback if Translate returns empty string
 	if msg == "" {
 		switch mode {
-		case w.Config.BuildFastShortcut:
+		case w.Config.BuildLargeSizeShortcut:
 			msg = "Switching to coding mode"
-		case w.Config.BuildBugShortcut:
+		case w.Config.BuildMediumSizeShortcut:
 			msg = "Switching to debugging mode"
-		case w.Config.BuildMinimalShortcut:
+		case w.Config.BuildSmallSizeShortcut:
 			msg = "Switching to production mode"
 		default:
 			msg = "Invalid mode"

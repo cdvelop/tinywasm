@@ -134,13 +134,13 @@ go 1.21
 		tinyWasm.tinyGoCompiler = false // Start with Go standard compiler
 
 		// Verify initial state (should be coding mode)
-		if tinyWasm.Value() != "f" {
+		if tinyWasm.Value() != "L" {
 			t.Fatal("Expected coding mode to be used initially")
 		}
 
 		// Test setting TinyGo compiler (debug mode) using progress callback
 		var changeMsg string
-		tinyWasm.Change("b", func(msgs ...any) {
+		tinyWasm.Change("M", func(msgs ...any) {
 			if len(msgs) > 0 {
 				changeMsg = fmt.Sprint(msgs...)
 			}
@@ -150,7 +150,7 @@ go 1.21
 			t.Logf("TinyGo not available: %s", changeMsg)
 		} else {
 			// Check that we successfully switched to debug mode
-			if tinyWasm.Value() != "b" {
+			if tinyWasm.Value() != "M" {
 				t.Fatal("Expected debug mode to be set after change")
 			}
 			// Message can be success or warning (auto-compilation might fail in test env)

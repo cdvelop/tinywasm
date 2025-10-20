@@ -60,7 +60,7 @@ func (w *TinyWasm) detectProjectConfiguration() {
         w.Logger("WASM project detected from .wasm.go files, defaulting to Go compiler")
         w.wasmProject = true
         w.tinyGoCompiler = false
-        w.currentMode = w.Config.BuildFastShortcut
+        w.currentMode = w.Config.BuildLargeSizeShortcut
         return
     }
     
@@ -332,7 +332,7 @@ The existing `JavascriptForInitializing()` method already works correctly:
 ### 5. **Cache Strategy - RESOLVED** ✅
 - **Decision**: **NO CHANGES** to existing cache mechanism
 - **Rationale**: Current cache in `JavascriptForInitializing()` already works correctly for in-memory content generation
-- **Implementation**: Keep existing `modeC_go_wasm_exec_cache` and `modeD_tinygo_wasm_exec_cache` as-is
+- **Implementation**: Keep existing `mode_large_go_wasm_exec_cache` and `mode_medium_tinygo_wasm_exec_cache` as-is
 
 ### 6. **Error Handling - RESOLVED** ✅
 - **Decision**: Non-fatal error handling with logging only

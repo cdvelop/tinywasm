@@ -15,9 +15,9 @@ func TestJavascriptHeaderRoundtrip(t *testing.T) {
 
 	// Test all three supported shortcuts: coding, debugging, production
 	shortcuts := []string{
-		w.Config.BuildFastShortcut,
-		w.Config.BuildBugShortcut,
-		w.Config.BuildMinimalShortcut,
+		w.Config.BuildLargeSizeShortcut,
+		w.Config.BuildMediumSizeShortcut,
+		w.Config.BuildSmallSizeShortcut,
 	}
 
 	tmpDir := t.TempDir()

@@ -37,7 +37,7 @@ func (w *TinyWasm) builderWasmInit() {
 		}
 		return args
 	}
-	w.builderCoding = gobuild.New(&codingConfig)
+	w.builderLarge = gobuild.New(&codingConfig)
 
 	// Configure Debug builder (TinyGo debug-friendly)
 	debugConfig := baseConfig
@@ -49,7 +49,7 @@ func (w *TinyWasm) builderWasmInit() {
 		}
 		return args
 	}
-	w.builderDebug = gobuild.New(&debugConfig)
+	w.builderMedium = gobuild.New(&debugConfig)
 
 	// Configure Production builder (TinyGo optimized)
 	prodConfig := baseConfig
@@ -61,10 +61,10 @@ func (w *TinyWasm) builderWasmInit() {
 		}
 		return args
 	}
-	w.builderProduction = gobuild.New(&prodConfig)
+	w.builderSmall = gobuild.New(&prodConfig)
 
 	// Set initial mode and active builder (default to coding mode)
-	w.activeBuilder = w.builderCoding // Default: fast development
+	w.activeBuilder = w.builderLarge // Default: fast development
 }
 
 // updateCurrentBuilder sets the activeBuilder based on mode and cancels ongoing operations
@@ -76,14 +76,14 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 
 	// 2. Set activeBuilder based on mode
 	switch mode {
-	case w.Config.BuildFastShortcut: // "f"
-		w.activeBuilder = w.builderCoding
-	case w.Config.BuildBugShortcut: // "b"
-		w.activeBuilder = w.builderDebug
-	case w.Config.BuildMinimalShortcut: // "m"
-		w.activeBuilder = w.builderProduction
+	case w.Config.BuildLargeSizeShortcut: // "L"
+		w.activeBuilder = w.builderLarge
+	case w.Config.BuildMediumSizeShortcut: // "M"
+		w.activeBuilder = w.builderMedium
+	case w.Config.BuildSmallSizeShortcut: // "S"
+		w.activeBuilder = w.builderSmall
 	default:
-		w.activeBuilder = w.builderCoding // fallback to coding mode
+		w.activeBuilder = w.builderLarge // fallback to coding mode
 	}
 
 	// 3. Update current mode tracking

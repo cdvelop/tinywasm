@@ -33,14 +33,14 @@ func TestInitializationDetectionFromWasmExecJs(t *testing.T) {
 
 	// Create TinyWasm instance
 	config := &Config{
-		AppRootDir:           testDir,
-		SourceDir:            "web",
-		OutputDir:            "web/public",
-		WasmExecJsOutputDir:  "web/theme/js",
-		BuildFastShortcut:    "f",
-		BuildBugShortcut:     "b",
-		BuildMinimalShortcut: "m",
-		Logger:               func(message ...any) {},
+		AppRootDir:              testDir,
+		SourceDir:               "web",
+		OutputDir:               "web/public",
+		WasmExecJsOutputDir:     "web/theme/js",
+		BuildLargeSizeShortcut:  "L",
+		BuildMediumSizeShortcut: "M",
+		BuildSmallSizeShortcut:  "S",
+		Logger:                  func(message ...any) {},
 	}
 
 	tinyWasm := New(config)
@@ -52,8 +52,8 @@ func TestInitializationDetectionFromWasmExecJs(t *testing.T) {
 	if tinyWasm.tinyGoCompiler {
 		t.Error("Expected tinyGoCompiler to be false (Go detected)")
 	}
-	if tinyWasm.currentMode != config.BuildFastShortcut {
-		t.Errorf("Expected currentMode to be %s, got %s", config.BuildFastShortcut, tinyWasm.currentMode)
+	if tinyWasm.currentMode != config.BuildLargeSizeShortcut {
+		t.Errorf("Expected currentMode to be %s, got %s", config.BuildLargeSizeShortcut, tinyWasm.currentMode)
 	}
 }
 
@@ -89,8 +89,8 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 	if tinyWasm.tinyGoCompiler {
 		t.Error("Expected tinyGoCompiler to be false (default to Go)")
 	}
-	if tinyWasm.currentMode != config.BuildFastShortcut {
-		t.Errorf("Expected currentMode to be %s, got %s", config.BuildFastShortcut, tinyWasm.currentMode)
+	if tinyWasm.currentMode != config.BuildLargeSizeShortcut {
+		t.Errorf("Expected currentMode to be %s, got %s", config.BuildLargeSizeShortcut, tinyWasm.currentMode)
 	}
 
 	// Ensure wasm_exec.js was created in the output path and is non-empty
@@ -125,13 +125,13 @@ func TestInitializationDetectionFromGoFiles(t *testing.T) {
 // TestDefaultConfiguration tests that WasmExecJsOutputDir defaults to "src/web/ui/js"
 func TestDefaultConfiguration(t *testing.T) {
 	config := &Config{
-		AppRootDir:           "/test",
-		SourceDir:            "web",
-		OutputDir:            "theme/js",
-		BuildFastShortcut:    "c",
-		BuildBugShortcut:     "d",
-		BuildMinimalShortcut: "p",
-		Logger:               func(message ...any) {},
+		AppRootDir:              "/test",
+		SourceDir:               "web",
+		OutputDir:               "theme/js",
+		BuildLargeSizeShortcut:  "c",
+		BuildMediumSizeShortcut: "d",
+		BuildSmallSizeShortcut:  "p",
+		Logger:                  func(message ...any) {},
 	}
 
 	tinyWasm := New(config)
@@ -156,14 +156,14 @@ func TestNoWasmProjectDetected(t *testing.T) {
 
 	// Create TinyWasm instance
 	config := &Config{
-		AppRootDir:           testDir,
-		SourceDir:            "web",
-		OutputDir:            "theme/js",
-		WasmExecJsOutputDir:  "theme/js",
-		BuildFastShortcut:    "f",
-		BuildBugShortcut:     "b",
-		BuildMinimalShortcut: "m",
-		Logger:               func(message ...any) {},
+		AppRootDir:              testDir,
+		SourceDir:               "web",
+		OutputDir:               "theme/js",
+		WasmExecJsOutputDir:     "theme/js",
+		BuildLargeSizeShortcut:  "L",
+		BuildMediumSizeShortcut: "M",
+		BuildSmallSizeShortcut:  "S",
+		Logger:                  func(message ...any) {},
 	}
 
 	tinyWasm := New(config)

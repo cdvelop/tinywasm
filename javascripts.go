@@ -92,17 +92,17 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 	mode := h.Value()
 
 	// Return appropriate cached content if available for each explicit mode.
-	// Coding mode -> modeC_go_wasm_exec_cache
-	// Debugging mode -> modeD_tinygo_wasm_exec_cache
-	// Production mode -> modeP_tinygo_wasm_exec_cache
-	if mode == h.Config.BuildFastShortcut && h.modeC_go_wasm_exec_cache != "" {
-		return h.modeC_go_wasm_exec_cache, nil
+	// Coding mode -> mode_large_go_wasm_exec_cache
+	// Debugging mode -> mode_medium_tinygo_wasm_exec_cache
+	// Production mode -> mode_small_tinygo_wasm_exec_cache
+	if mode == h.Config.BuildLargeSizeShortcut && h.mode_large_go_wasm_exec_cache != "" {
+		return h.mode_large_go_wasm_exec_cache, nil
 	}
-	if mode == h.Config.BuildBugShortcut && h.modeD_tinygo_wasm_exec_cache != "" {
-		return h.modeD_tinygo_wasm_exec_cache, nil
+	if mode == h.Config.BuildMediumSizeShortcut && h.mode_medium_tinygo_wasm_exec_cache != "" {
+		return h.mode_medium_tinygo_wasm_exec_cache, nil
 	}
-	if mode == h.Config.BuildMinimalShortcut && h.modeP_tinygo_wasm_exec_cache != "" {
-		return h.modeP_tinygo_wasm_exec_cache, nil
+	if mode == h.Config.BuildSmallSizeShortcut && h.mode_small_tinygo_wasm_exec_cache != "" {
+		return h.mode_small_tinygo_wasm_exec_cache, nil
 	}
 
 	// Get raw content from embedded assets instead of system paths
@@ -151,18 +151,18 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 
 	// Store in appropriate cache based on mode
 	switch mode {
-	case h.Config.BuildFastShortcut:
-		h.modeC_go_wasm_exec_cache = normalized
-	case h.Config.BuildBugShortcut:
-		h.modeD_tinygo_wasm_exec_cache = normalized
-	case h.Config.BuildMinimalShortcut:
-		h.modeP_tinygo_wasm_exec_cache = normalized
+	case h.Config.BuildLargeSizeShortcut:
+		h.mode_large_go_wasm_exec_cache = normalized
+	case h.Config.BuildMediumSizeShortcut:
+		h.mode_medium_tinygo_wasm_exec_cache = normalized
+	case h.Config.BuildSmallSizeShortcut:
+		h.mode_small_tinygo_wasm_exec_cache = normalized
 	default:
 		// Fallback: if TinyGo compiler in use write to tinyGo cache, otherwise go cache
 		if h.tinyGoCompiler {
-			h.modeD_tinygo_wasm_exec_cache = normalized
+			h.mode_medium_tinygo_wasm_exec_cache = normalized
 		} else {
-			h.modeC_go_wasm_exec_cache = normalized
+			h.mode_large_go_wasm_exec_cache = normalized
 		}
 	}
 
@@ -187,9 +187,9 @@ func normalizeJs(s string) string {
 
 // ClearJavaScriptCache clears both cached JavaScript strings to force regeneration
 func (h *TinyWasm) ClearJavaScriptCache() {
-	h.modeC_go_wasm_exec_cache = ""
-	h.modeD_tinygo_wasm_exec_cache = ""
-	h.modeP_tinygo_wasm_exec_cache = ""
+	h.mode_large_go_wasm_exec_cache = ""
+	h.mode_medium_tinygo_wasm_exec_cache = ""
+	h.mode_small_tinygo_wasm_exec_cache = ""
 }
 
 // GetWasmExecJsPathTinyGo returns the path to TinyGo's wasm_exec.js file
@@ -410,19 +410,19 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 		w.currentMode = mode
 		// Set activeBuilder according to recovered mode
 		if w.requiresTinyGo(mode) {
-			w.activeBuilder = w.builderDebug
+			w.activeBuilder = w.builderMedium
 		} else {
-			w.activeBuilder = w.builderCoding
+			w.activeBuilder = w.builderLarge
 		}
 		//w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
 	} else {
 		// No header found, use signature-based defaults
 		if w.tinyGoCompiler {
-			w.activeBuilder = w.builderDebug
-			w.currentMode = w.Config.BuildBugShortcut
+			w.activeBuilder = w.builderMedium
+			w.currentMode = w.Config.BuildMediumSizeShortcut
 		} else {
-			w.activeBuilder = w.builderCoding
-			w.currentMode = w.Config.BuildFastShortcut
+			w.activeBuilder = w.builderLarge
+			w.currentMode = w.Config.BuildLargeSizeShortcut
 		}
 		//w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
 	}

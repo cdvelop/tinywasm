@@ -7,7 +7,7 @@ Go package for intelligent WebAssembly compilation with automatic file detection
 
 ## Features
 
-- **3-Mode Compiler System**: Fast ("f"), Bugs ("b"), Minimal ("m")
+- **3-Mode Compiler System**: Large ("L"), Medium ("M"), Small ("S")
 - **DevTUI Integration**: FieldHandler interface for interactive mode switching
 - Smart file detection via prefixes (frontend/backend separation)
 - Triple compiler support: Go standard (fast dev), TinyGo debug (-opt=1), TinyGo production (-opt=z)
@@ -27,8 +27,8 @@ tw := tinywasm.New(config)
 tw.NewFileEvent("src/cmd/webclient/main.go", ".go", "src/cmd/webclient/main.go", "write")
 
 // DevTUI Integration - 3 Mode System
-fmt.Println("Current mode:", tw.Value())    // "f" (coding)
-msg, err := tw.Change("b")                  // Switch to debug mode
+fmt.Println("Current mode:", tw.Value())    // "L" (coding / large build)
+msg, err := tw.Change("M")                  // Switch to debug (medium) mode
 fmt.Println("Status:", msg)                 // "Switching to debugging mode"
 
 // Advanced configuration
@@ -39,9 +39,9 @@ config := &tinywasm.Config{
     WasmExecJsOutputDir: "src/web/ui/js",
     MainInputFile:       "main.go",
     OutputName:          "main",
-    BuildFastShortcut:   "f",  // Customizable shortcuts
-    BuildBugShortcut:    "b",
-    BuildMinimalShortcut: "m",
+	BuildLargeSizeShortcut:   "L",  // Customizable shortcuts (default: L = Large/fast with go)
+	BuildMediumSizeShortcut:    "M",
+	BuildSmallSizeShortcut: "S",
     Logger:              logger,
 }
 ```
@@ -54,14 +54,14 @@ TinyWasm implements the DevTUI FieldHandler interface for interactive developmen
 ```go
 // DevTUI Integration
 label := tw.Label()           // "Compiler Mode"
-current := tw.Value()         // Current mode shortcut ("f", "b", "m")
+current := tw.Value()         // Current mode shortcut ("L", "M", "S")
 canEdit := tw.Editable()      // true
 timeout := tw.Timeout()       // 0 (no timeout)
 
 // Interactive mode change with validation
-msg, err := tw.Change("b")
+msg, err := tw.Change("M")
 if err != nil {
-    // Handle validation errors (invalid mode, missing TinyGo, etc.)
+	// Handle validation errors (invalid mode, missing TinyGo, etc.)
 }
 // msg contains success message or warning if auto-compilation fails
 ```
@@ -83,7 +83,7 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 **DevTUI FieldHandler Interface:**
 - `Label() string` - Returns "Compiler Mode"
-- `Value() string` - Current mode shortcut ("f", "b", "m")
+-- `Value() string` - Current mode shortcut ("L", "M", "S")
 - `Editable() bool` - Returns true (field is editable)
 - `Change(newValue any) (string, error)` - Switch compiler mode with validation
 - `Timeout() time.Duration` - Returns 0 (no timeout)
@@ -111,9 +111,9 @@ type Config struct {
 	Logger              func(message ...any) // For logging output to external systems (e.g., TUI, console)
 
 	// NEW: Shortcut configuration (default: "f", "b", "m")
-	BuildFastShortcut    string // "f" (fast) compile fast with go
-	BuildBugShortcut     string // "b" (bugs) compile with tinygo debug
-	BuildMinimalShortcut string // "m" (minimal) compile with tinygo minimal binary size
+	BuildLargeSizeShortcut    string // "L" (large/fast) compile fast with go
+	BuildMediumSizeShortcut     string // "M" (medium/debug) compile with tinygo debug
+	BuildSmallSizeShortcut string // "S" (small/minimal) compile with tinygo minimal binary size
 
 	// gobuild integration fields
 	Callback           func(error)     // Optional callback for async compilation
@@ -156,9 +156,9 @@ TinyWasm produces **two types of outputs** that serve different purposes in the 
 
 ## Mode Switching
 ```go
-tw.Change("m")  // production mode with TinyGo -opt=z
-tw.Change("b")  // debug mode with TinyGo -opt=1
-tw.Change("f")  // coding mode with Go standard
+tw.Change("S")  // production mode with TinyGo -opt=z
+tw.Change("M")  // debug mode with TinyGo -opt=1
+tw.Change("L")  // coding mode with Go standard
 ```
 
 ## Requirements
@@ -167,19 +167,7 @@ tw.Change("f")  // coding mode with Go standard
 - TinyGo (optional, required for debug/production modes)
 - DevTUI (optional, for interactive development)
 
-## Migration Guide
 
-**From TinyWasm v1.x:**
-
-| Old API | New API | Notes |
-|---------|---------|-------|
-| `SetTinyGoCompiler(true)` | `Change("m")` | Production mode |
-| `SetTinyGoCompiler(false)` | `Change("f")` | Coding mode |
-| `TinyGoCompiler()` | `Value() == "m" \|\| Value() == "b"` | Check if using TinyGo |
-| `config.Log` | `config.Writer` | Field renamed |
-| `WebFilesRootRelative` | `SourceDir` | Input directory for Go source |
-| `WebFilesSubRelative` | `OutputDir` | Output directory for WASM binaries |
-| `WebFilesSubRelativeJsOutput` | `WasmExecJsOutputDir` | Output directory for watchable JS |
 
 **Benefits:**
 - 🎯 **3 optimized modes** instead of binary choice
