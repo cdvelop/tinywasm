@@ -107,31 +107,19 @@ func (w *TinyWasm) validateMode(mode string) error {
 
 // getSuccessMessage returns appropriate success message for mode
 func (w *TinyWasm) getSuccessMessage(mode string) string {
-	var msg string
+
 	switch mode {
 	case w.Config.BuildLargeSizeShortcut:
-		msg = Translate("Switching", "to", "coding", "mode").String()
+		return Translate(D.Changed, D.To, D.Mode, "Large").String()
 	case w.Config.BuildMediumSizeShortcut:
-		msg = Translate("Switching", "to", "debugging", "mode").String()
+		return Translate(D.Changed, D.To, D.Mode, "Medium").String()
 	case w.Config.BuildSmallSizeShortcut:
-		msg = Translate("Switching", "to", "production", "mode").String()
+		return Translate(D.Changed, D.To, D.Mode, "Small").String()
 	default:
-		msg = Translate(D.Invalid, "mode").String()
+		return Translate(D.Mode, ":", mode, D.Invalid).String()
 	}
 
-	// Fallback if Translate returns empty string
-	if msg == "" {
-		switch mode {
-		case w.Config.BuildLargeSizeShortcut:
-			msg = "Switching to coding mode"
-		case w.Config.BuildMediumSizeShortcut:
-			msg = "Switching to debugging mode"
-		case w.Config.BuildSmallSizeShortcut:
-			msg = "Switching to production mode"
-		default:
-			msg = "Invalid mode"
-		}
-	}
-
-	return msg
 }
+
+func (w *TinyWasm) GetLastOperationID() string   { return w.lastOpID }
+func (w *TinyWasm) SetLastOperationID(id string) { w.lastOpID = id }

@@ -34,21 +34,23 @@ func (w *TinyWasm) NewFileEvent(fileName, extension, filePath, event string) err
 		return nil
 	}
 
-	// Check if this file should trigger compilation
-	if !w.ShouldCompileToWasm(fileName, filePath) {
-		// File should be ignored (backend file or unknown type)
-		return nil
-	}
+	// IMPORTANT: At this point, devwatch has already called godepfind.ThisFileIsMine()
+	// and confirmed this file belongs to this handler. We should ALWAYS compile.
+	// The old ShouldCompileToWasm() check was incorrect - it rejected dependency files.
 
 	// Compile using current active builder
 	if w.activeBuilder == nil {
 		return Err("builder not initialized")
 	}
 
+	w.Logger("Compiling WASM due to", filePath, "change...")
+
 	// Compile using gobuild
 	if err := w.activeBuilder.CompileProgram(); err != nil {
 		return Err("compiling to WebAssembly error: ", err)
 	}
+
+	w.Logger("✓ WASM compilation successful")
 
 	return nil
 }

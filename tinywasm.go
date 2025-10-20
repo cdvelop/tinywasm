@@ -63,6 +63,9 @@ type Config struct {
 	// DisableWasmExecJsOutput prevents automatic creation of wasm_exec.js file
 	// Useful when embedding wasm_exec.js content inline (e.g., Cloudflare Pages Advanced Mode)
 	DisableWasmExecJsOutput bool
+
+	// LastOperationID tracks the last operation ID for progress reporting
+	lastOpID string
 }
 
 // NewConfig creates a TinyWasm Config with sensible defaults
