@@ -1,8 +1,6 @@
 package tinywasm
 
 import (
-	"path"
-
 	. "github.com/cdvelop/tinystring"
 )
 
@@ -75,14 +73,14 @@ func (w *TinyWasm) ShouldCompileToWasm(fileName, filePath string) bool {
 func (w *TinyWasm) MainInputFileRelativePath() string {
 	// The input lives under the source directory by convention.
 	// Return full path including AppRootDir for callers that expect absolute paths
-	return path.Join(w.Config.SourceDir, w.Config.MainInputFile)
+	return PathJoin(w.Config.SourceDir, w.Config.MainInputFile).String()
 }
 
 // MainOutputFileAbsolutePath returns the absolute path to the main WASM output file (e.g. "main.wasm").
 func (w *TinyWasm) MainOutputFileAbsolutePath() string {
 	// The output file is created in OutputDir which is:
 	// AppRootDir/OutputDir/main.wasm
-	return path.Join(w.Config.AppRootDir, w.Config.OutputDir, "main.wasm")
+	return PathJoin(w.Config.AppRootDir, w.Config.OutputDir, "main.wasm").String()
 }
 
 // UnobservedFiles returns files that should not be watched for changes e.g: main.wasm
