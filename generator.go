@@ -66,5 +66,7 @@ func (t *TinyWasm) CreateDefaultWasmFileClientIfNotExist() *TinyWasm {
 
 	t.wasmProject = true
 
+	t.VisualStudioCodeWasmEnvConfig()
+
 	return t
 }
