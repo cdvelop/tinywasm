@@ -68,5 +68,11 @@ func (t *TinyWasm) CreateDefaultWasmFileClientIfNotExist() *TinyWasm {
 
 	t.VisualStudioCodeWasmEnvConfig()
 
+	// Ensure wasm_exec.js is present in output (create/overwrite as needed)
+	// Skip if DisableWasmExecJsOutput is set (e.g., for inline embedding scenarios)
+	if !t.Config.DisableWasmExecJsOutput {
+		t.wasmProjectWriteOrReplaceWasmExecJsOutput()
+	}
+
 	return t
 }
