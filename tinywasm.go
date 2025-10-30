@@ -155,11 +155,6 @@ func New(c *Config) *TinyWasm {
 	// Perform one-time detection at the end
 	w.detectProjectConfiguration()
 
-	// if false create src/cmd/webclient/main.wasm.go with a basic template
-	if !w.wasmProject {
-		w.createDefaultWasmFile()
-	}
-
 	return w
 }
 

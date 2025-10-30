@@ -168,6 +168,17 @@ func TestNoWasmProjectDetected(t *testing.T) {
 
 	tinyWasm := New(config)
 
+	// Initially, no WASM project should be detected
+	if tinyWasm.wasmProject {
+		t.Error("Expected wasmProject to be false initially when no WASM files exist")
+	}
+
+	// Now create the default WASM file using the new optional method
+	result := tinyWasm.CreateDefaultWasmFileClientIfNotExist()
+	if result == nil {
+		t.Error("Expected CreateDefaultWasmFileClientIfNotExist to return TinyWasm instance")
+	}
+
 	// Verify WASM project is now detected after creating default file
 	if !tinyWasm.wasmProject {
 		t.Error("Expected wasmProject to be true after creating default WASM file")

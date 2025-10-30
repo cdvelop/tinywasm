@@ -2,7 +2,6 @@ package tinywasm
 
 import (
 	"embed"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,9 +11,9 @@ import (
 //go:embed templates/*
 var embeddedFS embed.FS
 
-// createDefaultWasmFile creates a default WASM main.go file from the embedded markdown template
-// It never overwrites an existing file.
-func (t *TinyWasm) createDefaultWasmFile() error {
+// CreateDefaultWasmFileClientIfNotExist creates a default WASM main.go file from the embedded markdown template
+// It never overwrites an existing file and returns the TinyWasm instance for method chaining.
+func (t *TinyWasm) CreateDefaultWasmFileClientIfNotExist() *TinyWasm {
 	// Build target path from Config
 	targetPath := filepath.Join(t.AppRootDir, t.SourceDir, t.MainInputFile)
 
@@ -23,13 +22,16 @@ func (t *TinyWasm) createDefaultWasmFile() error {
 		if t.Logger != nil {
 			t.Logger("WASM file already exists at", targetPath, ", skipping generation")
 		}
-		return nil
+		return t
 	}
 
 	// Read embedded markdown (no template processing needed - static content)
 	raw, errRead := embeddedFS.ReadFile("templates/basic_wasm_client.md")
 	if errRead != nil {
-		return fmt.Errorf("reading embedded template: %w", errRead)
+		if t.Logger != nil {
+			t.Logger("Error reading embedded template:", errRead)
+		}
+		return t
 	}
 
 	// Use mdgo to extract Go code from markdown
@@ -52,7 +54,10 @@ func (t *TinyWasm) createDefaultWasmFile() error {
 
 	// Extract to the main file
 	if err := m.Extract(t.MainInputFile); err != nil {
-		return fmt.Errorf("extracting go code from markdown: %w", err)
+		if t.Logger != nil {
+			t.Logger("Error extracting go code from markdown:", err)
+		}
+		return t
 	}
 
 	if t.Logger != nil {
@@ -61,5 +66,5 @@ func (t *TinyWasm) createDefaultWasmFile() error {
 
 	t.wasmProject = true
 
-	return nil
+	return t
 }

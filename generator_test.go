@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCreateDefaultWasmFileCreatesFile(t *testing.T) {
+func TestCreateDefaultWasmFileClientIfNotExistCreatesFile(t *testing.T) {
 	tmp := t.TempDir()
 	sourceDir := "src/cmd/webclient"
 	fullSourcePath := filepath.Join(tmp, sourceDir)
@@ -31,8 +31,9 @@ func TestCreateDefaultWasmFileCreatesFile(t *testing.T) {
 		t.Fatalf("expected no existing file at %s", target)
 	}
 
-	if err := tw.createDefaultWasmFile(); err != nil {
-		t.Fatalf("createDefaultWasmFile failed: %v", err)
+	result := tw.CreateDefaultWasmFileClientIfNotExist()
+	if result == nil {
+		t.Fatalf("CreateDefaultWasmFileClientIfNotExist returned nil")
 	}
 
 	// Verify file was created
@@ -61,7 +62,7 @@ func TestCreateDefaultWasmFileCreatesFile(t *testing.T) {
 	}
 }
 
-func TestCreateDefaultWasmFileDoesNotOverwrite(t *testing.T) {
+func TestCreateDefaultWasmFileClientIfNotExistDoesNotOverwrite(t *testing.T) {
 	tmp := t.TempDir()
 	sourceDir := "src/cmd/webclient"
 	fullSourcePath := filepath.Join(tmp, sourceDir)
@@ -88,8 +89,9 @@ func TestCreateDefaultWasmFileDoesNotOverwrite(t *testing.T) {
 	}
 
 	// Try to generate (should skip)
-	if err := tw.createDefaultWasmFile(); err != nil {
-		t.Fatalf("createDefaultWasmFile failed: %v", err)
+	result := tw.CreateDefaultWasmFileClientIfNotExist()
+	if result == nil {
+		t.Fatalf("CreateDefaultWasmFileClientIfNotExist returned nil")
 	}
 
 	// Verify original content is preserved
