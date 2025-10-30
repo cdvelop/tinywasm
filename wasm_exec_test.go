@@ -251,10 +251,10 @@ func getFileHash(filePath string) (string, error) {
 // - Check if wasm_exec files exist in assets directory
 // - Create them if they don't exist
 // - Update them if versions have changed
-// NOTE: This test leaves the files in assets/ directory as expected by documentation
 func TestEnsureWasmExecFilesExists(t *testing.T) {
-	// Use the assets directory directly (as per documentation)
-	assetsDir := "assets"
+	// Use a temporary directory for assets
+	tempDir := t.TempDir()
+	assetsDir := filepath.Join(tempDir, "assets")
 
 	// Create assets directory if it doesn't exist
 	if err := os.MkdirAll(assetsDir, 0755); err != nil {

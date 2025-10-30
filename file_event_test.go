@@ -149,13 +149,15 @@ go 1.21
 		if strings.Contains(strings.ToLower(changeMsg), "cannot") || strings.Contains(strings.ToLower(changeMsg), "not available") {
 			t.Logf("TinyGo not available: %s", changeMsg)
 		} else {
-			// Check that we successfully switched to debug mode
+			// Check that we successfully switched to Medium mode (debug)
 			if tinyWasm.Value() != "M" {
-				t.Fatal("Expected debug mode to be set after change")
+				t.Fatal("Expected Medium mode (debug) to be set after change")
 			}
 			// Message can be success or warning (auto-compilation might fail in test env)
-			if !strings.Contains(strings.ToLower(changeMsg), "debug") && !strings.Contains(strings.ToLower(changeMsg), "warning") {
-				t.Fatalf("Expected debug mode message or warning, got: %s", changeMsg)
+			// Accept "Medium" (new format) or "debug" (legacy) or "warning"
+			msgLower := strings.ToLower(changeMsg)
+			if !strings.Contains(msgLower, "medium") && !strings.Contains(msgLower, "debug") && !strings.Contains(msgLower, "warning") {
+				t.Fatalf("Expected Medium mode message or warning, got: %s", changeMsg)
 			}
 		}
 	})
@@ -163,9 +165,10 @@ go 1.21
 
 // Test for UnobservedFiles method
 func TestUnobservedFiles(t *testing.T) {
+	tmp := t.TempDir()
 	var logMessages []string
 	config := &Config{
-		AppRootDir: ".",
+		AppRootDir: tmp,
 		SourceDir:  "web",
 		OutputDir:  "public",
 		Logger: func(message ...any) {

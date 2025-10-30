@@ -10,7 +10,14 @@ import (
 // TinyWasm header with the getSuccessMessage text and that analyzeWasmExecJsContent
 // can read it back and restore the mode.
 func TestJavascriptHeaderRoundtrip(t *testing.T) {
-	w := New(nil)
+	tmpDir := t.TempDir()
+
+	config := &Config{
+		AppRootDir: tmpDir,
+		Logger:     func(...any) {},
+	}
+
+	w := New(config)
 	w.wasmProject = true
 
 	// Test all three supported shortcuts: coding, debugging, production
@@ -20,12 +27,11 @@ func TestJavascriptHeaderRoundtrip(t *testing.T) {
 		w.Config.BuildSmallSizeShortcut,
 	}
 
-	tmpDir := t.TempDir()
 	outPath := filepath.Join(tmpDir, "wasm_exec.js")
 
 	for _, mode := range shortcuts {
 		// Use a fresh TinyWasm instance per mode to avoid shared state
-		w := New(nil)
+		w := New(config)
 		w.wasmProject = true
 		// Set mode and ensure TinyGo installed flag is true for modes that may require it
 		w.currentMode = mode

@@ -10,11 +10,10 @@ import (
 
 // Test for ShouldCompileToWasm method
 func TestShouldCompileToWasm(t *testing.T) {
-	// Setup test environment
-	rootDir := "test"
+	// Setup test environment using temporary directory
+	rootDir := t.TempDir()
 	sourceDir := filepath.Join(rootDir, "wasmTest")
 	outputDir := filepath.Join(rootDir, "output")
-	defer os.RemoveAll(rootDir)
 
 	// modules support removed; tests operate on sourceDir directly
 	var logMessages []string
@@ -64,10 +63,9 @@ func TestShouldCompileToWasm(t *testing.T) {
 
 // Test for compiler comparison functionality
 func TestCompilerComparison(t *testing.T) {
-	// Setup test environment
-	rootDir := "test"
+	// Setup test environment using temporary directory
+	rootDir := t.TempDir()
 	webDir := filepath.Join(rootDir, "compilerTest")
-	defer os.RemoveAll(webDir)
 
 	publicDir := filepath.Join(webDir, "public")
 	if err := os.MkdirAll(publicDir, 0755); err != nil {

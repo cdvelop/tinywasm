@@ -30,8 +30,15 @@ func matchedSignatures(content string, sigs []string) []string {
 // and that the TinyGo usage flag changes between modes. The test is skipped
 // if tinygo is not available in PATH per VerifyTinyGoInstallation requirement.
 func TestJavascriptForInitializingSignatures(t *testing.T) {
-	// Create default TinyWasm instance
-	w := New(nil)
+	tmpDir := t.TempDir()
+
+	config := &Config{
+		AppRootDir: tmpDir,
+		Logger:     func(...any) {},
+	}
+
+	// Create TinyWasm instance with temp directory
+	w := New(config)
 
 	// Skip only if tinygo not present
 	if err := w.VerifyTinyGoInstallation(); err != nil {

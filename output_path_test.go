@@ -8,37 +8,35 @@ import (
 // TestOutputRelativePath verifies that OutputRelativePath returns a RELATIVE path,
 // not an absolute path. This is critical for file watcher UnobservedFiles functionality.
 func TestOutputRelativePath(t *testing.T) {
+	// Use temp directory for all tests to avoid creating files in project
+	tempBase := t.TempDir()
+
 	tests := []struct {
 		name       string
-		appRootDir string
 		outputDir  string
 		outputName string
 		expectPath string // Normalized with forward slashes for cross-platform testing
 	}{
 		{
-			name:       "Unix absolute root",
-			appRootDir: "/home/user/project",
+			name:       "Unix style path",
 			outputDir:  "deploy/edgeworker",
 			outputName: "app",
 			expectPath: "deploy/edgeworker/app.wasm",
 		},
 		{
-			name:       "Windows absolute root",
-			appRootDir: "C:\\Users\\user\\project",
+			name:       "Windows style path",
 			outputDir:  "deploy\\edgeworker",
 			outputName: "worker",
 			expectPath: "deploy/edgeworker/worker.wasm", // Normalized to forward slashes
 		},
 		{
-			name:       "Temp directory root",
-			appRootDir: "/tmp/test123",
+			name:       "Simple output directory",
 			outputDir:  "output",
 			outputName: "main",
 			expectPath: "output/main.wasm",
 		},
 		{
-			name:       "Current directory root",
-			appRootDir: ".",
+			name:       "Build directory",
 			outputDir:  "build",
 			outputName: "app",
 			expectPath: "build/app.wasm",
@@ -48,7 +46,7 @@ func TestOutputRelativePath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &Config{
-				AppRootDir: tt.appRootDir,
+				AppRootDir: tempBase,
 				SourceDir:  "src",
 				OutputDir:  tt.outputDir,
 				OutputName: tt.outputName,
@@ -58,7 +56,7 @@ func TestOutputRelativePath(t *testing.T) {
 			tw := New(config)
 			result := tw.OutputRelativePath()
 
-			t.Logf("AppRootDir: %s", tt.appRootDir)
+			t.Logf("AppRootDir: %s", tempBase)
 			t.Logf("OutputDir: %s", tt.outputDir)
 			t.Logf("OutputName: %s", tt.outputName)
 			t.Logf("Result: %s", result)
@@ -87,8 +85,10 @@ func TestOutputRelativePath(t *testing.T) {
 // TestOutputRelativePathConsistency verifies that OutputRelativePath returns
 // consistent results across different compiler modes (coding, debug, production)
 func TestOutputRelativePathConsistency(t *testing.T) {
+	tempDir := t.TempDir()
+
 	config := &Config{
-		AppRootDir: "/test/project",
+		AppRootDir: tempDir,
 		SourceDir:  "src/cmd/webclient",
 		OutputDir:  "src/web/public",
 		OutputName: "main",

@@ -9,6 +9,7 @@ import (
 func TestTinyStringMessages(t *testing.T) {
 	t.Run("Test success messages with TinyString", func(t *testing.T) {
 		config := NewConfig()
+		config.AppRootDir = t.TempDir()
 		config.SourceDir = "test"
 		config.OutputDir = "public"
 		tw := New(config)
@@ -18,9 +19,9 @@ func TestTinyStringMessages(t *testing.T) {
 			mode     string
 			expected []string // Words that should appear in the message
 		}{
-			{"L", []string{"Switching", "coding", "mode"}},
-			{"M", []string{"Switching", "debugging", "mode"}},
-			{"S", []string{"Switching", "production", "mode"}},
+			{"L", []string{"Changed", "Mode", "Large"}},
+			{"M", []string{"Changed", "Mode", "Medium"}},
+			{"S", []string{"Changed", "Mode", "Small"}},
 		}
 
 		for _, test := range tests {
@@ -41,6 +42,7 @@ func TestTinyStringMessages(t *testing.T) {
 
 	t.Run("Test error messages with TinyString", func(t *testing.T) {
 		config := NewConfig()
+		config.AppRootDir = t.TempDir()
 		config.SourceDir = "test"
 		config.OutputDir = "public"
 		tw := New(config)
@@ -59,6 +61,7 @@ func TestTinyStringMessages(t *testing.T) {
 
 	t.Run("Test Change method with TinyString messages", func(t *testing.T) {
 		config := NewConfig()
+		config.AppRootDir = t.TempDir()
 		config.SourceDir = "test"
 		config.OutputDir = "public"
 		tw := New(config)

@@ -168,8 +168,14 @@ func TestNoWasmProjectDetected(t *testing.T) {
 
 	tinyWasm := New(config)
 
-	// Verify no WASM project detected
-	if tinyWasm.wasmProject {
-		t.Error("Expected wasmProject to be false when no WASM files are present")
+	// Verify WASM project is now detected after creating default file
+	if !tinyWasm.wasmProject {
+		t.Error("Expected wasmProject to be true after creating default WASM file")
+	}
+
+	// Verify the default file was created
+	expectedPath := filepath.Join(testDir, "web", "main.go")
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Errorf("Expected default WASM file to be created at %s", expectedPath)
 	}
 }
