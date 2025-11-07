@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -46,6 +47,9 @@ func TestWasmExecFiles(t *testing.T) {
 			// Get the source path
 			sourcePath, err := tt.getPathFunc()
 			if err != nil {
+				if strings.Contains(err.Error(), "tinygo executable not found") {
+					t.Skipf("Skipping test: %v", err)
+				}
 				t.Fatalf("Failed to get source path: %v", err)
 			}
 
@@ -158,6 +162,9 @@ func TestWasmExecFileVersions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sourcePath, err := tt.getPathFunc()
 			if err != nil {
+				if strings.Contains(err.Error(), "tinygo executable not found") {
+					t.Skipf("Skipping test: %v", err)
+				}
 				t.Fatalf("Failed to get source path: %v", err)
 			}
 
@@ -290,6 +297,9 @@ func TestEnsureWasmExecFilesExists(t *testing.T) {
 			// Get source path
 			sourcePath, err := tt.getPathFunc()
 			if err != nil {
+				if strings.Contains(err.Error(), "tinygo executable not found") {
+					t.Skipf("Skipping test: %v", err)
+				}
 				t.Fatalf("Failed to get source path: %v", err)
 			}
 

@@ -3,6 +3,7 @@ package tinywasm
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -12,6 +13,9 @@ import (
 // from mode "b" to mode "m" doesn't update the wasm_exec.js header correctly.
 // This simulates the real-world scenario where AssetMin reads the stale header.
 func TestHeaderUpdateBugReproduction(t *testing.T) {
+	if _, err := exec.LookPath("tinygo"); err != nil {
+		t.Skip("tinygo not found in PATH")
+	}
 	// Create isolated temp workspace
 	tmp := t.TempDir()
 	webDirName := "web"
@@ -97,10 +101,14 @@ func main() {
 
 	// Step 2: Change to debugging mode
 	t.Log("=== Changing to debugging mode ===")
-	progressCb := func(msgs ...any) {
-		// Just capture progress messages
-	}
-	w.Change(w.Config.BuildMediumSizeShortcut, progressCb)
+	progressChan := make(chan string, 1)
+	done := make(chan bool)
+	go func() {
+		<-progressChan // Drain the channel
+		done <- true
+	}()
+	w.Change(w.Config.BuildMediumSizeShortcut, progressChan)
+	<-done
 
 	if w.Value() != "M" {
 		t.Errorf("Expected mode 'M', got '%s'", w.Value())
@@ -109,7 +117,14 @@ func main() {
 
 	// Step 3: THE CRITICAL TEST - Change to production mode
 	t.Log("=== Changing to production mode (THE BUG TEST) ===")
-	w.Change(w.Config.BuildSmallSizeShortcut, progressCb)
+	progressChan = make(chan string, 1)
+	done = make(chan bool)
+	go func() {
+		<-progressChan
+		done <- true
+	}()
+	w.Change(w.Config.BuildSmallSizeShortcut, progressChan)
+	<-done
 
 	if w.Value() != "S" {
 		t.Errorf("Expected mode 'S', got '%s'", w.Value())
@@ -122,14 +137,35 @@ func main() {
 	t.Log("=== Testing mode switching robustness ===")
 
 	// Back to debugging
-	w.Change(w.Config.BuildMediumSizeShortcut, progressCb)
+	progressChan = make(chan string, 1)
+	done = make(chan bool)
+	go func() {
+		<-progressChan
+		done <- true
+	}()
+	w.Change(w.Config.BuildMediumSizeShortcut, progressChan)
+	<-done
 	verifyHeader("M", "Back to debugging mode")
 
 	// Back to production
-	w.Change(w.Config.BuildSmallSizeShortcut, progressCb)
+	progressChan = make(chan string, 1)
+	done = make(chan bool)
+	go func() {
+		<-progressChan
+		done <- true
+	}()
+	w.Change(w.Config.BuildSmallSizeShortcut, progressChan)
+	<-done
 	verifyHeader("S", "Back to production mode (second time)")
 
 	// Back to coding
-	w.Change(w.Config.BuildLargeSizeShortcut, progressCb)
+	progressChan = make(chan string, 1)
+	done = make(chan bool)
+	go func() {
+		<-progressChan
+		done <- true
+	}()
+	w.Change(w.Config.BuildLargeSizeShortcut, progressChan)
+	<-done
 	verifyHeader("L", "Back to coding mode")
 }

@@ -74,7 +74,10 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 		w.activeBuilder.Cancel()
 	}
 
-	// 2. Set activeBuilder based on mode
+	// 2. Update current mode tracking
+	w.currentMode = mode
+
+	// 3. Set activeBuilder based on mode
 	switch mode {
 	case w.Config.BuildLargeSizeShortcut: // "L"
 		w.activeBuilder = w.builderLarge
@@ -85,9 +88,6 @@ func (w *TinyWasm) updateCurrentBuilder(mode string) {
 	default:
 		w.activeBuilder = w.builderLarge // fallback to coding mode
 	}
-
-	// 3. Update current mode tracking
-	w.currentMode = mode
 }
 
 // OutputRelativePath returns the RELATIVE path to the final output file

@@ -55,15 +55,15 @@ func (w *TinyWasm) WasmExecJsOutputPath() string {
 //
 // Note: This method does NOT add mode headers or perform caching. Those responsibilities
 // belong to JavascriptForInitializing() which is used for the internal initialization flow.
-func (w *TinyWasm) getWasmExecContent() ([]byte, error) {
+func (w *TinyWasm) getWasmExecContent(mode string) ([]byte, error) {
 	// Determine project type and compiler from TinyWasm state
-	wasmType, TinyGoCompiler := w.WasmProjectTinyGoJsUse()
-	if !wasmType {
+	isWasm, useTinyGo := w.WasmProjectTinyGoJsUse(mode)
+	if !isWasm {
 		return nil, Errf("not a WASM project")
 	}
 
 	// Return appropriate embedded content based on compiler configuration
-	if TinyGoCompiler {
+	if useTinyGo {
 		return embeddedWasmExecTinyGo, nil
 	}
 	return embeddedWasmExecGo, nil
@@ -82,31 +82,17 @@ func (w *TinyWasm) getWasmExecContent() ([]byte, error) {
 //   - JavascriptForInitializing("// Custom Header\n") - Custom header, default footer
 //   - JavascriptForInitializing("// Custom Header\n", "console.log('loaded');") - Both custom
 func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js string, err error) {
-	// Load wasm js code
-	wasmType, _ := h.WasmProjectTinyGoJsUse()
-	if !wasmType {
-		return
-	}
-
-	// Determine current mode shortcut and pick the right cache variable.
 	mode := h.Value()
+	isWasm, _ := h.WasmProjectTinyGoJsUse(mode)
+	if !isWasm {
+		return "", nil // Not a WASM project
+	}
 
-	// Return appropriate cached content if available for each explicit mode.
-	// Coding mode -> mode_large_go_wasm_exec_cache
-	// Debugging mode -> mode_medium_tinygo_wasm_exec_cache
-	// Production mode -> mode_small_tinygo_wasm_exec_cache
-	if mode == h.Config.BuildLargeSizeShortcut && h.mode_large_go_wasm_exec_cache != "" {
-		return h.mode_large_go_wasm_exec_cache, nil
-	}
-	if mode == h.Config.BuildMediumSizeShortcut && h.mode_medium_tinygo_wasm_exec_cache != "" {
-		return h.mode_medium_tinygo_wasm_exec_cache, nil
-	}
-	if mode == h.Config.BuildSmallSizeShortcut && h.mode_small_tinygo_wasm_exec_cache != "" {
-		return h.mode_small_tinygo_wasm_exec_cache, nil
-	}
+
+	// Always regenerate the JS, do not use cache
 
 	// Get raw content from embedded assets instead of system paths
-	wasmJs, err := h.getWasmExecContent()
+	wasmJs, err := h.getWasmExecContent(mode)
 	if err != nil {
 		return "", err
 	}
@@ -402,29 +388,6 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 	} else {
 		//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
 		return false
-	}
-
-	// After detecting runtime signatures, try to recover last-used mode from header
-	// This gives priority to the user's explicit mode choice over signature defaults
-	if mode, ok := w.getModeFromWasmExecJsHeader(content); ok {
-		w.currentMode = mode
-		// Set activeBuilder according to recovered mode
-		if w.requiresTinyGo(mode) {
-			w.activeBuilder = w.builderMedium
-		} else {
-			w.activeBuilder = w.builderLarge
-		}
-		//w.Logger("DEBUG: Restored mode from wasm_exec.js header:", mode)
-	} else {
-		// No header found, use signature-based defaults
-		if w.tinyGoCompiler {
-			w.activeBuilder = w.builderMedium
-			w.currentMode = w.Config.BuildMediumSizeShortcut
-		} else {
-			w.activeBuilder = w.builderLarge
-			w.currentMode = w.Config.BuildLargeSizeShortcut
-		}
-		//w.Logger("DEBUG: Using signature-based default mode:", w.currentMode)
 	}
 
 	return true

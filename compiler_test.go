@@ -113,14 +113,20 @@ func TestCompilerComparison(t *testing.T) {
 
 			// Test compiler detection
 			if tc.tinyGoEnabled {
-				// Try to enable TinyGo (might fail if not installed). Use progress callback to capture messages.
+				// Try to enable TinyGo (might fail if not installed). Use progress channel to capture messages.
+				progressChan := make(chan string, 1)
 				var msg string
-				tinyWasm.Change("b", func(msgs ...any) {
-					if len(msgs) > 0 {
-						msg = fmt.Sprint(msgs...)
+				done := make(chan bool)
+				go func() {
+					for m := range progressChan {
+						msg = m
 					}
-				})
-				// If TinyGo isn't available, the progress callback likely contains an error message.
+					done <- true
+				}()
+				tinyWasm.Change("b", progressChan)
+				<-done
+
+				// If TinyGo isn't available, the progress channel likely contains an error message.
 				if strings.Contains(strings.ToLower(msg), "cannot") || strings.Contains(strings.ToLower(msg), "not available") {
 					t.Logf("TinyGo not available, skipping: %s", msg)
 					return

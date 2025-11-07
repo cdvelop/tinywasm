@@ -2,6 +2,7 @@ package tinywasm
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -10,6 +11,9 @@ import (
 // TinyWasm header with the getSuccessMessage text and that analyzeWasmExecJsContent
 // can read it back and restore the mode.
 func TestJavascriptHeaderRoundtrip(t *testing.T) {
+	if _, err := exec.LookPath("tinygo"); err != nil {
+		t.Skip("tinygo not found in PATH")
+	}
 	tmpDir := t.TempDir()
 
 	config := &Config{
@@ -35,7 +39,6 @@ func TestJavascriptHeaderRoundtrip(t *testing.T) {
 		w.wasmProject = true
 		// Set mode and ensure TinyGo installed flag is true for modes that may require it
 		w.currentMode = mode
-		w.tinyGoInstalled = true
 
 		js, err := w.JavascriptForInitializing()
 		if err != nil {

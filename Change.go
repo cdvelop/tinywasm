@@ -15,56 +15,54 @@ func (w *TinyWasm) Shortcuts() []map[string]string {
 	}
 }
 
-// Change updates the compiler mode for TinyWasm and reports progress via the provided callback.
-// Implements the HandlerEdit interface: Change(newValue string, progress func(msgs ...any))
-func (w *TinyWasm) Change(newValue string, progress func(msgs ...any)) {
-
-	// Normalize input: trim spaces and convert to uppercase so users can
-	// provide lowercase shortcuts (e.g., "l") without confusing Shortcuts().
+// Change updates the compiler mode for TinyWasm and reports progress via the provided channel.
+// Implements the HandlerEdit interface: Change(newValue string, progress chan<- string)
+func (w *TinyWasm) Change(newValue string, progress chan<- string) {
+	defer close(progress) // Ensure channel is always closed
+	// Normalize input: trim spaces and convert to uppercase
 	newValue = Convert(newValue).ToUpper().String()
 
 	// Validate mode
 	if err := w.validateMode(newValue); err != nil {
-		progress(err)
+		progress <- err.Error()
 		return
 	}
 
-	// Check TinyGo installation for debug/production modes
-	if w.requiresTinyGo(newValue) && !w.tinyGoInstalled {
-		// handleTinyGoMissing returns an error with descriptive message
-		progress(w.handleTinyGoMissing().Error())
-		return
+	// Lazily verify TinyGo installation status ONLY when a TinyGo mode is requested
+	if w.requiresTinyGo(newValue) {
+		w.verifyTinyGoInstallationStatus()
+		if !w.tinyGoInstalled {
+			progress <- w.handleTinyGoMissing().Error()
+			return
+		}
 	}
 
 	// Update active builder
 	w.updateCurrentBuilder(newValue)
 
-	// Check if main WASM file exists before attempting compilation
+	// Check if main WASM file exists
 	sourceDir := path.Join(w.AppRootDir, w.Config.SourceDir)
 	mainWasmPath := path.Join(sourceDir, w.Config.MainInputFile)
 	if _, err := os.Stat(mainWasmPath); err != nil {
-		// File doesn't exist, just report success message without compilation
-		progress(w.getSuccessMessage(newValue))
+		progress <- w.getSuccessMessage(newValue) // Changed from progress(...)
 		return
 	}
 
-	// Auto-recompile with appropriate message format for MessageType detection
+	// Auto-recompile
 	if err := w.RecompileMainWasm(); err != nil {
-		// Report warning message via progress (don't treat as fatal)
 		warningMsg := Translate("Warning:", "auto", "compilation", "failed:", err).String()
 		if warningMsg == "" {
 			warningMsg = "Warning: auto compilation failed: " + err.Error()
 		}
-		progress(warningMsg)
+		progress <- warningMsg // Changed from progress(warningMsg)
 		return
 	}
 
-	// Ensure wasm_exec.js is available before compilation. The method will
-	// internally verify whether this is a WASM project and perform the write.
+	// Ensure wasm_exec.js is available
 	w.wasmProjectWriteOrReplaceWasmExecJsOutput()
 
 	// Report success
-	progress(w.getSuccessMessage(newValue))
+	progress <- w.getSuccessMessage(newValue)
 }
 
 // RecompileMainWasm recompiles the main WASM file if it exists

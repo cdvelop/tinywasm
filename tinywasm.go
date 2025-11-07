@@ -146,9 +146,6 @@ func New(c *Config) *TinyWasm {
 		w.Config.WasmExecJsOutputDir = "src/web/ui/js"
 	}
 
-	// Check TinyGo installation status
-	w.verifyTinyGoInstallationStatus()
-
 	// Initialize gobuild instance with WASM-specific configuration
 	w.builderWasmInit()
 
@@ -164,10 +161,15 @@ func (w *TinyWasm) Name() string {
 }
 
 // WasmProjectTinyGoJsUse returns dynamic state based on current configuration
-func (w *TinyWasm) WasmProjectTinyGoJsUse() (bool, bool) {
-	// Update TinyGo compiler state based on current mode
-	currentMode := w.Value()
-	useTinyGo := w.requiresTinyGo(currentMode) && w.tinyGoInstalled
+func (w *TinyWasm) WasmProjectTinyGoJsUse(mode ...string) (isWasmProject bool, useTinyGo bool) {
+	var currentMode string
+	if len(mode) > 0 {
+		currentMode = mode[0]
+	} else {
+		currentMode = w.Value()
+	}
+
+	useTinyGo = w.requiresTinyGo(currentMode)
 
 	return w.wasmProject, useTinyGo
 }
@@ -196,16 +198,11 @@ func (w *TinyWasm) detectProjectConfiguration() {
 		return
 	}
 
-	// Priority 2: Check for .wasm.go files (confirms WASM project)
+	// Priority 2: Check for .go files (confirms WASM project)
 	if w.detectFromGoFiles() {
-		//w.Logger("DEBUG: WASM project detected from .wasm.go files, defaulting to Go compiler")
 		w.wasmProject = true
-		w.tinyGoCompiler = false
-		w.currentMode = w.Config.BuildLargeSizeShortcut
-
-		// Ensure wasm_exec.js is present in output (create/overwrite as needed)
-		// This writes the initialization JS so downstream flows (tests/compile) have it.
-		// Skip if DisableWasmExecJsOutput is set (e.g., for inline embedding scenarios)
+		// If a project is detected from .go files, it means there's no wasm_exec.js,
+		// so we should create it.
 		if !w.Config.DisableWasmExecJsOutput {
 			w.wasmProjectWriteOrReplaceWasmExecJsOutput()
 		}

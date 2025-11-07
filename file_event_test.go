@@ -138,13 +138,21 @@ go 1.21
 			t.Fatal("Expected coding mode to be used initially")
 		}
 
-		// Test setting TinyGo compiler (debug mode) using progress callback
+		// Test setting TinyGo compiler (debug mode) using progress channel
+		progressChan := make(chan string, 1)
 		var changeMsg string
-		tinyWasm.Change("M", func(msgs ...any) {
-			if len(msgs) > 0 {
-				changeMsg = fmt.Sprint(msgs...)
+		done := make(chan bool)
+
+		go func() {
+			for msg := range progressChan {
+				changeMsg = msg
 			}
-		})
+			done <- true
+		}()
+
+		tinyWasm.Change("M", progressChan)
+		<-done
+
 		// If TinyGo isn't available, progress likely contains an error message
 		if strings.Contains(strings.ToLower(changeMsg), "cannot") || strings.Contains(strings.ToLower(changeMsg), "not available") {
 			t.Logf("TinyGo not available: %s", changeMsg)

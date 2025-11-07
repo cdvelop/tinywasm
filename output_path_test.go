@@ -108,7 +108,14 @@ func TestOutputRelativePathConsistency(t *testing.T) {
 	}
 
 	// Switch to debug mode
-	tw.Change("b", func(...any) {})
+	progressChan := make(chan string, 1)
+	done := make(chan bool)
+	go func() {
+		<-progressChan // Drain the channel
+		done <- true
+	}()
+	tw.Change("b", progressChan)
+	<-done
 	resultDebug := tw.OutputRelativePath()
 	if filepath.IsAbs(resultDebug) {
 		t.Errorf("Debug mode: returned absolute path: %s", resultDebug)
@@ -118,7 +125,14 @@ func TestOutputRelativePathConsistency(t *testing.T) {
 	}
 
 	// Switch to production mode
-	tw.Change("m", func(...any) {})
+	progressChan = make(chan string, 1)
+	done = make(chan bool)
+	go func() {
+		<-progressChan
+		done <- true
+	}()
+	tw.Change("m", progressChan)
+	<-done
 	resultProd := tw.OutputRelativePath()
 	if filepath.IsAbs(resultProd) {
 		t.Errorf("Production mode: returned absolute path: %s", resultProd)

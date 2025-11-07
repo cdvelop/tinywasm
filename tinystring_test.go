@@ -1,7 +1,6 @@
 package tinywasm
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -66,13 +65,18 @@ func TestTinyStringMessages(t *testing.T) {
 		config.OutputDir = "public"
 		tw := New(config)
 
-		// Test valid mode change using progress callback
+		// Test valid mode change using progress channel
+		progressChan := make(chan string, 1)
 		var got string
-		tw.Change("L", func(msgs ...any) {
-			if len(msgs) > 0 {
-				got = fmt.Sprint(msgs...)
+		done := make(chan bool)
+		go func() {
+			for msg := range progressChan {
+				got = msg
 			}
-		})
+			done <- true
+		}()
+		tw.Change("L", progressChan)
+		<-done
 
 		// Allow warning if no main.wasm.go exists in test env
 		if got == "" {
@@ -80,15 +84,19 @@ func TestTinyStringMessages(t *testing.T) {
 		}
 		t.Logf("Change message (success or warning): %s", got)
 
-		// Test invalid mode (non-existent mode) via progress callback
+		// Test invalid mode (non-existent mode) via progress channel
+		errChan := make(chan string, 1)
 		var errMsg string
-		tw.Change("invalid", func(msgs ...any) {
-			if len(msgs) > 0 {
-				errMsg = fmt.Sprint(msgs...)
+		errDone := make(chan bool)
+		go func() {
+			for msg := range errChan {
+				errMsg = msg
 			}
-		})
+			errDone <- true
+		}()
+		tw.Change("invalid", errChan)
+		<-errDone
 
-		// The progress callback may produce an empty string depending on the error type.
 		// Ensure that the current value did not change and that validateMode reports an error.
 		if tw.Value() != "L" {
 			t.Errorf("Expected compiler mode to remain 'L' after invalid change, got: %s", tw.Value())
