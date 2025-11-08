@@ -88,7 +88,6 @@ func (h *TinyWasm) JavascriptForInitializing(customizations ...string) (js strin
 		return "", nil // Not a WASM project
 	}
 
-
 	// Always regenerate the JS, do not use cache
 
 	// Get raw content from embedded assets instead of system paths
@@ -355,6 +354,12 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 
 	content := string(data)
 
+	// PRIORITY 1: Extract mode from header if present
+	if mode, found := w.getModeFromWasmExecJsHeader(content); found {
+		w.currentMode = mode
+		//w.Logger("DEBUG: Restored mode from header:", mode)
+	}
+
 	// Count signatures (reuse existing logic from wasmDetectionFuncFromJsFileActive)
 	goCount := 0
 	for _, s := range wasm_execGoSignatures() {
@@ -391,8 +396,6 @@ func (w *TinyWasm) analyzeWasmExecJsContent(filePath string) bool {
 	}
 
 	return true
-
-	//w.Logger("DEBUG: No valid WASM signatures found in wasm_exec.js")
 }
 
 // detectFromExistingWasmExecJs checks for existing wasm_exec.js file
