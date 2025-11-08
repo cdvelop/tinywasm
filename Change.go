@@ -17,8 +17,9 @@ func (w *TinyWasm) Shortcuts() []map[string]string {
 
 // Change updates the compiler mode for TinyWasm and reports progress via the provided channel.
 // Implements the HandlerEdit interface: Change(newValue string, progress chan<- string)
+// NOTE: The caller (devtui) is responsible for closing the progress channel, NOT the handler.
 func (w *TinyWasm) Change(newValue string, progress chan<- string) {
-	defer close(progress) // Ensure channel is always closed
+	// DO NOT close the channel - devtui owns it and will close it after this method returns
 	// Normalize input: trim spaces and convert to uppercase
 	newValue = Convert(newValue).ToUpper().String()
 
