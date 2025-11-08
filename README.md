@@ -27,9 +27,17 @@ tw := tinywasm.New(config)
 tw.NewFileEvent("src/cmd/webclient/main.go", ".go", "src/cmd/webclient/main.go", "write")
 
 // DevTUI Integration - 3 Mode System
-fmt.Println("Current mode:", tw.Value())    // "L" (coding / large build)
-msg, err := tw.Change("M")                  // Switch to debug (medium) mode
-fmt.Println("Status:", msg)                 // "Switching to debugging mode"
+fmt.Println("Current mode:", tw.Value()) // "L" (coding / large build)
+
+// New API: Change now reports progress via a channel instead of returning (msg, err).
+// Create and consume a progress channel before calling Change to avoid blocking.
+progress := make(chan string)
+go func() {
+	for p := range progress {
+		fmt.Println("Status:", p)
+	}
+}()
+tw.Change("M", progress) // Switch to medium (debug) mode; messages arrive on the progress channel
 
 // Advanced configuration
 config := &tinywasm.Config{
@@ -58,12 +66,20 @@ current := tw.Value()         // Current mode shortcut ("L", "M", "S")
 canEdit := tw.Editable()      // true
 timeout := tw.Timeout()       // 0 (no timeout)
 
-// Interactive mode change with validation
-msg, err := tw.Change("M")
-if err != nil {
-	// Handle validation errors (invalid mode, missing TinyGo, etc.)
-}
-// msg contains success message or warning if auto-compilation fails
+// Interactive mode change with the new Change API
+// Change now has signature: Change(newValue string, progress chan<- string)
+// All validation messages, warnings (e.g. auto-compilation failed) and success
+// messages are sent through the provided channel. The channel is closed when
+// the operation completes.
+progress := make(chan string)
+go func() {
+	for p := range progress {
+		// Handle progress messages (show in TUI, log, etc.)
+		fmt.Println("Progress:", p)
+	}
+}()
+tw.Change("M", progress)
+// No return values; read errors and status from the progress channel above.
 ```
 
 ## VS Code Integration
@@ -83,9 +99,9 @@ Auto-creates `.vscode/settings.json` with WASM environment:
 
 **DevTUI FieldHandler Interface:**
 - `Label() string` - Returns "Compiler Mode"
--- `Value() string` - Current mode shortcut ("L", "M", "S")
+- `Value() string` - Current mode shortcut ("L", "M", "S")
 - `Editable() bool` - Returns true (field is editable)
-- `Change(newValue any) (string, error)` - Switch compiler mode with validation
+- `Change(newValue string, progress chan<- string)` - Switch compiler mode and report progress via the provided channel. Validation errors, auto-compilation warnings and success messages are sent to the channel; the implemention closes the channel when finished.
 - `Timeout() time.Duration` - Returns 0 (no timeout)
 
 **Legacy Compiler Methods (deprecated):**
@@ -156,9 +172,18 @@ TinyWasm produces **two types of outputs** that serve different purposes in the 
 
 ## Mode Switching
 ```go
-tw.Change("S")  // production mode with TinyGo -opt=z
-tw.Change("M")  // debug mode with TinyGo -opt=1
-tw.Change("L")  // coding mode with Go standard
+// Example usage with the new channel-based Change API:
+progress := make(chan string)
+go func() {
+	for p := range progress {
+		fmt.Println(p)
+	}
+}()
+tw.Change("S", progress) // production mode with TinyGo -opt=z
+
+// Repeat for other modes as needed (always provide and consume a progress channel)
+// tw.Change("M", progress)
+// tw.Change("L", progress)
 ```
 
 ## Requirements
