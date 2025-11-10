@@ -104,10 +104,12 @@ func main() {
 	progressChan := make(chan string, 1)
 	done := make(chan bool)
 	go func() {
-		<-progressChan // Drain the channel
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	w.Change(w.Config.BuildMediumSizeShortcut, progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 
 	if w.Value() != "M" {
@@ -120,10 +122,12 @@ func main() {
 	progressChan = make(chan string, 1)
 	done = make(chan bool)
 	go func() {
-		<-progressChan
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	w.Change(w.Config.BuildSmallSizeShortcut, progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 
 	if w.Value() != "S" {
@@ -140,10 +144,12 @@ func main() {
 	progressChan = make(chan string, 1)
 	done = make(chan bool)
 	go func() {
-		<-progressChan
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	w.Change(w.Config.BuildMediumSizeShortcut, progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 	verifyHeader("M", "Back to debugging mode")
 
@@ -151,10 +157,12 @@ func main() {
 	progressChan = make(chan string, 1)
 	done = make(chan bool)
 	go func() {
-		<-progressChan
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	w.Change(w.Config.BuildSmallSizeShortcut, progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 	verifyHeader("S", "Back to production mode (second time)")
 
@@ -162,10 +170,12 @@ func main() {
 	progressChan = make(chan string, 1)
 	done = make(chan bool)
 	go func() {
-		<-progressChan
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	w.Change(w.Config.BuildLargeSizeShortcut, progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 	verifyHeader("L", "Back to coding mode")
 }

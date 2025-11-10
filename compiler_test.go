@@ -124,6 +124,7 @@ func TestCompilerComparison(t *testing.T) {
 					done <- true
 				}()
 				tinyWasm.Change("b", progressChan)
+				close(progressChan) // Close channel so goroutine can finish
 				<-done
 
 				// If TinyGo isn't available, the progress channel likely contains an error message.

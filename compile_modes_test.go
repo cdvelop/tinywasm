@@ -153,7 +153,8 @@ func main() {
 			}()
 
 			w.Change(tc.mode, progressChan)
-			<-done // Wait for the goroutine to finish
+			close(progressChan) // Close channel so goroutine can finish
+			<-done              // Wait for the goroutine to finish
 
 			// Assert that the internal mode has changed
 			if w.Value() != tc.mode {
@@ -226,10 +227,12 @@ func main() {
 		progressChan := make(chan string, 1)
 		done := make(chan bool)
 		go func() {
-			<-progressChan // Drain the channel
+			for range progressChan { // Drain all messages
+			}
 			done <- true
 		}()
 		w.Change(w.Config.BuildMediumSizeShortcut, progressChan)
+		close(progressChan) // Close channel so goroutine can finish
 		<-done
 
 		tinygoJS, err := w.JavascriptForInitializing()

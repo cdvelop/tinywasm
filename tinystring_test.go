@@ -76,6 +76,7 @@ func TestTinyStringMessages(t *testing.T) {
 			done <- true
 		}()
 		tw.Change("L", progressChan)
+		close(progressChan) // Close channel so goroutine can finish
 		<-done
 
 		// Allow warning if no main.wasm.go exists in test env
@@ -95,6 +96,7 @@ func TestTinyStringMessages(t *testing.T) {
 			errDone <- true
 		}()
 		tw.Change("invalid", errChan)
+		close(errChan) // Close channel so goroutine can finish
 		<-errDone
 
 		// Ensure that the current value did not change and that validateMode reports an error.

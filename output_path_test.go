@@ -111,10 +111,12 @@ func TestOutputRelativePathConsistency(t *testing.T) {
 	progressChan := make(chan string, 1)
 	done := make(chan bool)
 	go func() {
-		<-progressChan // Drain the channel
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	tw.Change("b", progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 	resultDebug := tw.OutputRelativePath()
 	if filepath.IsAbs(resultDebug) {
@@ -128,10 +130,12 @@ func TestOutputRelativePathConsistency(t *testing.T) {
 	progressChan = make(chan string, 1)
 	done = make(chan bool)
 	go func() {
-		<-progressChan
+		for range progressChan { // Drain all messages
+		}
 		done <- true
 	}()
 	tw.Change("m", progressChan)
+	close(progressChan) // Close channel so goroutine can finish
 	<-done
 	resultProd := tw.OutputRelativePath()
 	if filepath.IsAbs(resultProd) {

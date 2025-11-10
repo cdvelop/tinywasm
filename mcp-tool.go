@@ -1,9 +1,8 @@
 package tinywasm
 
-import "fmt"
-
 // ToolExecutor defines how a tool should be executed
-type ToolExecutor func(args map[string]any, progress chan<- string)
+// Channel accepts string messages (no binary data in tinywasm)
+type ToolExecutor func(args map[string]any, progress chan<- any)
 
 // ToolMetadata provides MCP tool configuration metadata
 type ToolMetadata struct {
@@ -42,7 +41,7 @@ func (w *TinyWasm) GetMCPToolsMetadata() []ToolMetadata {
 					EnumValues:  []string{"L", "M", "S"},
 				},
 			},
-			Execute: func(args map[string]any, progress chan<- string) {
+			Execute: func(args map[string]any, progress chan<- any) {
 				modeValue, ok := args["mode"]
 				if !ok {
 					progress <- "missing required parameter 'mode'. Use L, M, or S"
@@ -55,28 +54,29 @@ func (w *TinyWasm) GetMCPToolsMetadata() []ToolMetadata {
 					return
 				}
 
+				// Create string-only channel for Change method
+				// and forward messages to the any channel
+				stringChan := make(chan string, 10)
+				done := make(chan bool)
+
+				go func() {
+					for msg := range stringChan {
+						progress <- msg
+					}
+					done <- true
+				}()
+
 				// Domain-specific logic: Change WASM compilation mode
-				w.Change(mode, progress)
-			},
-		},
-		{
-			Name:        "wasm_recompile",
-			Description: "Force immediate WASM recompilation of the Go frontend code with current mode (useful after code changes or mode switch to see results immediately).",
-			Parameters:  []ParameterMetadata{},
-			Execute: func(args map[string]any, progress chan<- string) {
-				// Domain-specific logic: Force recompilation
-				if err := w.RecompileMainWasm(); err != nil {
-					progress <- fmt.Sprintf("recompilation failed: %v", err)
-					return
-				}
-				progress <- "WASM recompiled successfully"
+				w.Change(mode, stringChan)
+				close(stringChan)
+				<-done
 			},
 		},
 		{
 			Name:        "wasm_get_size",
 			Description: "Get current WASM file size and comparison across all three modes (LARGE/MEDIUM/SMALL) to help decide optimal size/feature tradeoff for production.",
 			Parameters:  []ParameterMetadata{},
-			Execute: func(args map[string]any, progress chan<- string) {
+			Execute: func(args map[string]any, progress chan<- any) {
 				// TODO: Implement size retrieval from TinyWasm
 				progress <- "Current WASM size: [not implemented yet]"
 			},

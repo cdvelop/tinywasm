@@ -151,6 +151,7 @@ go 1.21
 		}()
 
 		tinyWasm.Change("M", progressChan)
+		close(progressChan) // Close channel so goroutine can finish
 		<-done
 
 		// If TinyGo isn't available, progress likely contains an error message
