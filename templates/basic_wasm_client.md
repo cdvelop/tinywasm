@@ -5,6 +5,8 @@ This template creates a basic WebAssembly client that displays a simple message 
 ## Main Package
 
 ```go
+//go:build wasm
+
 package main
 
 import (
